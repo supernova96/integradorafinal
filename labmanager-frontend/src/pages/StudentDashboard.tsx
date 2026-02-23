@@ -8,11 +8,27 @@ import { useForm } from 'react-hook-form';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 
 
 const StudentDashboard: React.FC = () => {
     const { user, logout } = useAuth();
+
+    // Configurar WebSocket para notificaciones personales
+    useWebSocket(user?.id ? '/user/queue/notifications' : undefined, (message) => {
+        toast.info(message, {
+            position: "top-right",
+            autoClose: 8000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "colored",
+        });
+        // Actualizar el historial para reflejar el cambio de estado
+        fetchMyReservations();
+    });
     const [selectedSoftware, setSelectedSoftware] = useState<string[]>([]);
     const [date, setDate] = useState<Date>(new Date());
     const [startTime, setStartTime] = useState('09:00');
@@ -84,11 +100,20 @@ const StudentDashboard: React.FC = () => {
         }
 
         // 3. Check Time (7 AM - 9 PM)
-        const [startH] = startTime.split(':').map(Number);
+        const [startH, startM] = startTime.split(':').map(Number);
         const [endH, endM] = endTime.split(':').map(Number);
 
         if (startH < 7 || endH > 21 || (endH === 21 && endM > 0)) {
             toast.warning('Horario permitido: 7:00 AM - 9:00 PM');
+            return;
+        }
+
+        const now = new Date();
+        const startDateTime = new Date(date);
+        startDateTime.setHours(startH, startM, 0, 0);
+
+        if (startDateTime < now) {
+            toast.warning('No puedes buscar equipos para un horario que ya pasó.');
             return;
         }
 

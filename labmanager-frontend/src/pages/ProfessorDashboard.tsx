@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { LogOut, Layers, Clock, CheckCircle, Star, X, Calendar, Menu } from 'lucide-react';
@@ -6,9 +6,31 @@ import ThemeToggle from '../components/ThemeToggle';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 const ProfessorDashboard: React.FC = () => {
     const { user, logout } = useAuth();
+
+    const fetchReservations = useCallback(() => {
+        api.get('/reservations/my')
+            .then(res => setMyReservations(res.data))
+            .catch(() => toast.error('Failed to load history'));
+    }, []);
+
+    // Configurar WebSocket para notificaciones personales
+    useWebSocket(user?.id ? '/user/queue/notifications' : undefined, (message) => {
+        toast.info(message, {
+            position: "top-right",
+            autoClose: 8000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "colored",
+        });
+        // Actualizar el historial para reflejar el cambio de estado
+        fetchReservations();
+    });
     const [activeTab, setActiveTab] = useState<'class' | 'history' | 'report'>('class');
 
     // Report State
@@ -70,11 +92,19 @@ const ProfessorDashboard: React.FC = () => {
         }
 
         // 3. Check Time (7 AM - 9 PM)
-        const [startH] = startTime.split(':').map(Number);
+        const [startH, startM] = startTime.split(':').map(Number);
         const [endH, endM] = endTime.split(':').map(Number);
 
         if (startH < 7 || endH > 21 || (endH === 21 && endM > 0)) {
             return toast.warning('Horario permitido: 7:00 AM - 9:00 PM');
+        }
+
+        const now = new Date();
+        const startDateTime = new Date(date);
+        startDateTime.setHours(startH, startM, 0, 0);
+
+        if (startDateTime < now) {
+            return toast.warning('No puedes hacer una reserva en un horario que ya pasó.');
         }
 
         try {
@@ -159,8 +189,7 @@ const ProfessorDashboard: React.FC = () => {
             toast.success('¡Gracias por tu calificación!');
             setShowRatingModal(false);
             // Refresh history
-            api.get('/reservations/my')
-                .then(res => setMyReservations(res.data));
+            api.get('/reservations/my').then(res => setMyReservations(res.data));
         } catch (e) {
             toast.error('Error al enviar calificación');
         }

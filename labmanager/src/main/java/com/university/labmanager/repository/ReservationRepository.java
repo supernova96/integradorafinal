@@ -20,6 +20,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
 
         List<Reservation> findByStartTimeAfter(LocalDateTime date);
 
+        List<Reservation> findByLaptopId(Long laptopId);
+
         @org.springframework.data.jpa.repository.Query("SELECT r FROM Reservation r WHERE " +
                         "(:status IS NULL OR r.status = :status) AND " +
                         "(:start IS NULL OR r.startTime >= :start) AND " +

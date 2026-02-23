@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.3.0",
     "@yudiel/react-qr-scanner": "^2.5.1",
     "autoprefixer": "^10.4.16",
     "axios": "^1.13.2",
@@ -23,6 +24,7 @@
     "react-router-dom": "^7.11.0",
     "react-toastify": "^11.0.5",
     "recharts": "^3.6.0",
+    "sockjs-client": "^1.6.1",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
@@ -30,6 +32,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
+    "@types/sockjs-client": "^1.5.4",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",

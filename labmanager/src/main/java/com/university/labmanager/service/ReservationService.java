@@ -286,4 +286,27 @@ public class ReservationService {
 
     private final com.university.labmanager.repository.ReservationRepository reservationRepository;
     private final com.university.labmanager.repository.SoftwareRepository softwareRepository;
+    private final com.university.labmanager.repository.IncidentRepository incidentRepository;
+
+    public com.university.labmanager.dto.LaptopHistoryDTO getLaptopHistory(Long laptopId) {
+        // Fetch Reservations
+        List<com.university.labmanager.model.Reservation> allRes = reservationRepository.findByLaptopId(laptopId);
+        List<com.university.labmanager.model.Reservation> pastRes = allRes.stream()
+                .filter(r -> r.getStatus() == com.university.labmanager.model.enums.ReservationStatus.COMPLETED
+                        || r.getStatus() == com.university.labmanager.model.enums.ReservationStatus.REJECTED)
+                .collect(java.util.stream.Collectors.toList());
+
+        // Fetch Incidents
+        List<com.university.labmanager.model.Incident> incidents = incidentRepository.findByLaptopId(laptopId);
+
+        // Fetch Avg Rating
+        Double avgRating = reservationRepository.findAverageRatingByLaptopId(laptopId);
+
+        com.university.labmanager.dto.LaptopHistoryDTO history = new com.university.labmanager.dto.LaptopHistoryDTO();
+        history.setPastReservations(pastRes);
+        history.setIncidents(incidents);
+        history.setAverageRating(avgRating != null ? avgRating : 0.0);
+
+        return history;
+    }
 }

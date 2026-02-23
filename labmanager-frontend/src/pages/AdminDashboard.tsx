@@ -9,9 +9,25 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import api from '../services/api';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 const AdminDashboard: React.FC = () => {
     const { user, logout } = useAuth();
+
+    // Configurar WebSocket para notificaciones de Admin
+    useWebSocket('/topic/admin-notifications', (message) => {
+        toast.info(message, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "colored",
+        });
+        // Recargar reservas usando la función global
+        fetchData();
+    });
     const [activeTab, setActiveTab] = useState<'inventory' | 'incidents' | 'handover' | 'requests' | 'users' | 'analytics' | 'reports' | 'whitelist' | 'logs' | 'config' | 'ratings'>('analytics');
     const [inventory, setInventory] = useState<any[]>([]);
     const [reservations, setReservations] = useState<any[]>([]);
@@ -34,6 +50,22 @@ const AdminDashboard: React.FC = () => {
     // QR Scanner State
     const [showScanner, setShowScanner] = useState(false);
     const [scannedReservation, setScannedReservation] = useState<any>(null); // For handling the scanned result action
+
+    // History Modal State
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [selectedLaptopHistory, setSelectedLaptopHistory] = useState<any>(null);
+    const [activeHistoryTab, setActiveHistoryTab] = useState<'reservations' | 'incidents'>('reservations');
+
+    const handleViewHistory = async (laptopId: number, laptopInfo: any) => {
+        try {
+            const res = await api.get(`/laptops/${laptopId}/history`);
+            setSelectedLaptopHistory({ ...res.data, laptopInfo });
+            setActiveHistoryTab('reservations');
+            setShowHistoryModal(true);
+        } catch (error) {
+            toast.error('Error al cargar el historial del equipo');
+        }
+    };
 
     const handleScan = (result: any) => {
         if (result && result[0]) {
@@ -829,6 +861,9 @@ const AdminDashboard: React.FC = () => {
                                                 <button onClick={() => handleDeleteLaptop(laptop.id)} className="flex-1 px-3 py-1.5 bg-red-500/10 text-red-300 text-xs font-medium rounded hover:bg-red-500/20 flex items-center justify-center border border-red-500/20">
                                                     <Trash2 className="h-3 w-3 mr-1" /> Eliminar
                                                 </button>
+                                                <button onClick={() => handleViewHistory(laptop.id, laptop)} className="flex-1 px-3 py-1.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 text-xs font-medium rounded hover:bg-amber-500/20 flex items-center justify-center border border-amber-500/20">
+                                                    <Activity className="h-3 w-3 mr-1" /> Historial
+                                                </button>
                                             </div>
                                         </div>
                                     );
@@ -964,13 +999,16 @@ const AdminDashboard: React.FC = () => {
                                                 </div>
                                             </div>
                                             <p className="mt-1 text-slate-900 dark:text-slate-200">{inc.description}</p>
-                                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                                {inc.reportType === 'DESKTOP' ? (
-                                                    <span className="text-blue-300 font-bold">🖥️ Ubicación: {inc.location}</span>
+                                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex flex-col gap-1">
+                                                {['DESKTOP', 'ROOM'].includes(inc.reportType) ? (
+                                                    <span className="text-blue-300 font-bold inline-flex items-center">
+                                                        <span className="mr-1">🖥️</span>
+                                                        Ubicación / Salón: {inc.location || 'No especificada'}
+                                                    </span>
                                                 ) : (
                                                     <span>Equipo: {inc.laptop?.model} ({inc.laptop?.serialNumber})</span>
                                                 )}
-                                                {inc.reporter && <span className="ml-4 font-semibold text-slate-600 dark:text-slate-300">Reportado por: {inc.reporter.fullName} ({inc.reporter.matricula})</span>}
+                                                {inc.reporter && <span className="font-semibold text-slate-600 dark:text-slate-300">Reportado por: {inc.reporter.fullName} ({inc.reporter.matricula})</span>}
                                             </p>
                                         </div>
                                         {/* Actions Column */}
@@ -1314,6 +1352,139 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Laptop History Modal */}
+            {showHistoryModal && selectedLaptopHistory && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] flex flex-col animate-fadeIn">
+
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-6 shrink-0">
+                            <div>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center">
+                                    <Activity className="mr-3 h-6 w-6 text-amber-500" />
+                                    Hoja de Vida (Historial)
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+                                    Equipo: <span className="font-bold text-slate-700 dark:text-slate-300">{selectedLaptopHistory.laptopInfo.model}</span> (Serie: {selectedLaptopHistory.laptopInfo.serialNumber})
+                                </p>
+                            </div>
+                            <button onClick={() => setShowHistoryModal(false)} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-3 gap-4 mb-6 shrink-0">
+                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl block p-4 border border-slate-100 dark:border-white/5">
+                                <div className="text-sm text-slate-500 dark:text-slate-400">Total Préstamos</div>
+                                <div className="text-xl font-bold text-slate-900 dark:text-white">{selectedLaptopHistory.pastReservations?.length || 0}</div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-100 dark:border-white/5">
+                                <div className="text-sm text-slate-500 dark:text-slate-400">Total Incidentes</div>
+                                <div className="text-xl font-bold text-slate-900 dark:text-white">{selectedLaptopHistory.incidents?.length || 0}</div>
+                            </div>
+                            <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4 border border-slate-100 dark:border-white/5">
+                                <div className="text-sm text-slate-500 dark:text-slate-400">Calificación Promedio</div>
+                                <div className="flex items-center text-xl font-bold text-slate-900 dark:text-white">
+                                    <Star className="w-5 h-5 text-yellow-400 fill-current mr-1" />
+                                    {selectedLaptopHistory.averageRating.toFixed(1)}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex border-b border-slate-200 dark:border-white/10 mb-4 shrink-0">
+                            <button
+                                onClick={() => setActiveHistoryTab('reservations')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeHistoryTab === 'reservations' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            >
+                                Préstamos Anteriores
+                            </button>
+                            <button
+                                onClick={() => setActiveHistoryTab('incidents')}
+                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${activeHistoryTab === 'incidents' ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                            >
+                                Registro de Fallas
+                            </button>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="overflow-y-auto flex-1 pr-2 space-y-4">
+                            {activeHistoryTab === 'reservations' && (
+                                <div className="space-y-3">
+                                    {(!selectedLaptopHistory.pastReservations || selectedLaptopHistory.pastReservations.length === 0) ? (
+                                        <p className="text-center text-slate-500 py-8">No hay registro de préstamos completados.</p>
+                                    ) : (
+                                        selectedLaptopHistory.pastReservations.map((res: any) => (
+                                            <div key={res.id} className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div>
+                                                    <div className="font-bold text-slate-900 dark:text-white">{res.user?.fullName || 'Usuario Desconocido'} <span className="font-normal text-sm text-slate-500">({res.user?.matricula})</span></div>
+                                                    <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                                        <Calendar className="w-3.5 h-3.5 inline mr-1" />
+                                                        {res.startTime ? format(new Date(res.startTime), "dd MMM yyyy, HH:mm", { locale: es }) : 'N/A'} - {res.endTime ? format(new Date(res.endTime), "HH:mm") : 'N/A'}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider ${res.status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' :
+                                                        'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                                                        }`}>
+                                                        {res.status === 'COMPLETED' ? 'Completado' : 'Rechazado'}
+                                                    </span>
+                                                    {res.rating && (
+                                                        <div className="flex items-center text-yellow-500 mt-2 text-xs">
+                                                            {'★'.repeat(res.rating)}{'☆'.repeat(5 - res.rating)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {activeHistoryTab === 'incidents' && (
+                                <div className="space-y-3">
+                                    {(!selectedLaptopHistory.incidents || selectedLaptopHistory.incidents.length === 0) ? (
+                                        <p className="text-center text-slate-500 py-8">El equipo no reporta fallas históricas.</p>
+                                    ) : (
+                                        selectedLaptopHistory.incidents.map((inc: any) => (
+                                            <div key={inc.id} className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-sm uppercase tracking-wider ${inc.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
+                                                            inc.severity === 'MEDIUM' ? 'bg-orange-500 text-white' :
+                                                                'bg-blue-500 text-white'
+                                                            }`}>
+                                                            {inc.severity === 'CRITICAL' ? 'Crítico' : inc.severity === 'MEDIUM' ? 'Medio' : 'Bajo'}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                            {inc.reportedAt ? format(new Date(inc.reportedAt), "dd MMM yyyy HH:mm", { locale: es }) : 'N/A'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm font-medium text-slate-900 dark:text-white mt-1 border-l-2 pl-2 border-slate-300 dark:border-slate-600">{inc.description}</p>
+                                                    <div className="text-xs text-slate-500 mt-2">
+                                                        Reportado por: {inc.reporter?.fullName || 'Sistema'}
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0">
+                                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${inc.resolved
+                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/30'
+                                                        : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/30'
+                                                        }`}>
+                                                        {inc.resolved ? '✓ Resuelto' : '! Activo'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                     </div>
                 </div>
             )}

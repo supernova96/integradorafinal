@@ -33,6 +33,11 @@ public class LaptopController {
         return ResponseEntity.ok(reservationService.findAllLaptops());
     }
 
+    @GetMapping("/{id}/history")
+    public ResponseEntity<com.university.labmanager.dto.LaptopHistoryDTO> getLaptopHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(reservationService.getLaptopHistory(id));
+    }
+
     @PostMapping
     public ResponseEntity<Laptop> createLaptop(@RequestBody Laptop laptop) {
         try {
