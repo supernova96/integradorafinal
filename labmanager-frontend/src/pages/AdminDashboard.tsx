@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ClipboardCheck, LayoutGrid, AlertTriangle, LogOut, Plus, Edit, Trash2, Activity, QrCode, Download, Settings, Calendar, MessageSquare, Star, Menu, X } from 'lucide-react';
+import { ClipboardCheck, LayoutGrid, AlertTriangle, LogOut, Plus, Edit, Trash2, Activity, QrCode, Download, Settings, Calendar, MessageSquare, Star, Menu, X, Bell } from 'lucide-react';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import LogsTable from '../components/LogsTable';
 import ThemeToggle from '../components/ThemeToggle';
@@ -14,8 +14,40 @@ import { useWebSocket } from '../hooks/useWebSocket';
 const AdminDashboard: React.FC = () => {
     const { user, logout } = useAuth();
 
+    const [notifications, setNotifications] = useState<any[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const fetchNotifications = async () => {
+        try {
+            const notifRes = await api.get('/notifications');
+            setNotifications(notifRes.data);
+            const countRes = await api.get('/notifications/unread-count');
+            setUnreadCount(countRes.data.count);
+        } catch (e) { console.error("Error fetching notifications", e); }
+    };
+
+    useEffect(() => {
+        fetchNotifications();
+    }, []);
+
+    const handleMarkAsRead = async (id: number) => {
+        try {
+            await api.put(`/notifications/${id}/read`);
+            fetchNotifications();
+        } catch (e) { console.error(e); }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        try {
+            await api.put(`/notifications/read-all`);
+            fetchNotifications();
+            setShowNotifications(false);
+        } catch (e) { console.error(e); }
+    };
+
     // Configurar WebSocket para notificaciones de Admin
-    useWebSocket('/topic/admin-notifications', (message) => {
+    useWebSocket(user?.id ? '/user/queue/notifications' : undefined, (message) => {
         toast.info(message, {
             position: "top-right",
             autoClose: 5000,
@@ -25,9 +57,11 @@ const AdminDashboard: React.FC = () => {
             draggable: true,
             theme: "colored",
         });
-        // Recargar reservas usando la función global
+        // Recargar reportes y notificaciones
         fetchData();
+        fetchNotifications();
     });
+
     const [activeTab, setActiveTab] = useState<'inventory' | 'incidents' | 'handover' | 'requests' | 'users' | 'analytics' | 'reports' | 'whitelist' | 'logs' | 'config' | 'ratings'>('analytics');
     const [inventory, setInventory] = useState<any[]>([]);
     const [reservations, setReservations] = useState<any[]>([]);
@@ -402,10 +436,63 @@ const AdminDashboard: React.FC = () => {
                             </button>
                             <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">LabManager <span className="text-blue-400">Admin</span></span>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-4 relative">
+                            {/* Notificaciones */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white transition-colors"
+                                >
+                                    <Bell className="h-5 w-5" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1 right-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 z-50 overflow-hidden">
+                                        <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+                                            <h3 className="font-semibold text-slate-900 dark:text-white">Notificaciones</h3>
+                                            {unreadCount > 0 && (
+                                                <button onClick={handleMarkAllAsRead} className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                                                    Marcar todas leídas
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="max-h-96 overflow-y-auto w-full">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-6 text-center text-slate-500 dark:text-slate-400 text-sm">
+                                                    No tienes notificaciones
+                                                </div>
+                                            ) : (
+                                                notifications.map(notif => (
+                                                    <div
+                                                        key={notif.id}
+                                                        onClick={() => { if (!notif.read) handleMarkAsRead(notif.id); setShowNotifications(false); }}
+                                                        className={`p-4 border-b border-slate-100 dark:border-white/5 cursor-pointer transition-colors ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-500/10 hover:bg-blue-50 dark:hover:bg-blue-500/20' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                                    >
+                                                        <div className="flex justify-between items-start mb-1 gap-2">
+                                                            <p className={`text-sm ${!notif.read ? 'font-medium text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                                {notif.message}
+                                                            </p>
+                                                            {!notif.read && <span className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></span>}
+                                                        </div>
+                                                        <span className="text-xs text-slate-400 dark:text-slate-500">
+                                                            {format(new Date(notif.createdAt), "dd MMM 'a las' HH:mm", { locale: es })}
+                                                        </span>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Resto de menu */}
                             <ThemeToggle />
                             <span className="text-sm text-slate-600 dark:text-slate-300 hidden sm:inline">Operador: <span className="font-semibold text-slate-900 dark:text-white">{user?.fullName}</span></span>
-                            <button onClick={logout} className="p-2 rounded-full hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white transition-colors">
+                            <button onClick={logout} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white transition-colors">
                                 <LogOut className="h-5 w-5" />
                             </button>
                         </div>

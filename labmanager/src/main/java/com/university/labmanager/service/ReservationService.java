@@ -79,7 +79,10 @@ public class ReservationService {
                 .status(com.university.labmanager.model.enums.ReservationStatus.PENDING)
                 .build();
 
-        return reservationRepository.save(reservation);
+        reservation = reservationRepository.save(reservation);
+        notificationService.notifyAdmins("Nueva solicitud de reserva (" + laptop.getModel() + ") por " + subject,
+                "RESERVATION");
+        return reservation;
     }
 
     @Transactional
@@ -140,7 +143,10 @@ public class ReservationService {
             reservations.add(res);
         }
 
-        return reservationRepository.saveAll(reservations);
+        reservations = reservationRepository.saveAll(reservations);
+        notificationService.notifyAdmins(
+                "Nueva solicitud grupal (" + quantity + " equipos) para la materia: " + subject, "RESERVATION");
+        return reservations;
     }
 
     public List<com.university.labmanager.model.Reservation> getReservationsByUserId(Long userId) {
@@ -287,6 +293,7 @@ public class ReservationService {
     private final com.university.labmanager.repository.ReservationRepository reservationRepository;
     private final com.university.labmanager.repository.SoftwareRepository softwareRepository;
     private final com.university.labmanager.repository.IncidentRepository incidentRepository;
+    private final com.university.labmanager.service.NotificationService notificationService;
 
     public com.university.labmanager.dto.LaptopHistoryDTO getLaptopHistory(Long laptopId) {
         // Fetch Reservations

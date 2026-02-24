@@ -25,6 +25,9 @@ public class IncidentController {
     @Autowired
     LaptopRepository laptopRepository;
 
+    @Autowired
+    com.university.labmanager.service.NotificationService notificationService;
+
     @GetMapping
     public List<Incident> getAllIncidents() {
         return incidentRepository.findAll();
@@ -92,6 +95,7 @@ public class IncidentController {
             }
 
             incidentRepository.save(incident);
+            notificationService.notifyAdmins("Nuevo incidente reportado: " + description, "INCIDENT");
             return ResponseEntity.ok("Incident reported successfully");
         } catch (Exception e) {
             e.printStackTrace();

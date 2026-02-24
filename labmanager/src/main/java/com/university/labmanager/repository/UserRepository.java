@@ -13,6 +13,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
+    java.util.List<User> findByRole(com.university.labmanager.model.enums.Role role);
+
     // Helper for simple login by username/matricula/email if needed - for now just
     // matricula
     default Optional<User> findByUsername(String username) {
