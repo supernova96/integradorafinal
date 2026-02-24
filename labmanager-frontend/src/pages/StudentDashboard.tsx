@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { UNIVERSITY_SUBJECTS } from '../constants/subjects';
 
 
 
@@ -580,13 +581,16 @@ END:VCALENDAR`;
                                 <div className="space-y-4 mb-6">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Materia / Clase (*)</label>
-                                        <input
-                                            type="text"
-                                            className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 placeholder-slate-600"
-                                            placeholder="Ej. Programación Orientada a Objetos"
+                                        <select
+                                            className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                             value={subject}
                                             onChange={(e) => setSubject(e.target.value)}
-                                        />
+                                        >
+                                            <option value="" disabled className="bg-white dark:bg-slate-900">Seleccione una materia</option>
+                                            {UNIVERSITY_SUBJECTS.map((sub) => (
+                                                <option key={sub} value={sub} className="bg-white dark:bg-slate-900">{sub}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Profesor (*)</label>

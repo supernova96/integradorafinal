@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { UNIVERSITY_SUBJECTS } from '../constants/subjects';
+
 
 const ProfessorDashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -355,13 +357,16 @@ END:VCALENDAR`;
 
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Clase / Materia</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Intro to Computer Science"
+                                        <select
+                                            className="w-full rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                             value={subject}
-                                            onChange={e => setSubject(e.target.value)}
-                                            className="w-full rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 placeholder-slate-600"
-                                        />
+                                            onChange={(e) => setSubject(e.target.value)}
+                                        >
+                                            <option value="" disabled className="bg-white dark:bg-slate-900">Seleccione una materia</option>
+                                            {UNIVERSITY_SUBJECTS.map((sub) => (
+                                                <option key={sub} value={sub} className="bg-white dark:bg-slate-900">{sub}</option>
+                                            ))}
+                                        </select>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
