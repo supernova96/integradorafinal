@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -29,14 +30,24 @@ const Login: React.FC = () => {
                 navigate('/student');
             }
         } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Error al iniciar sesión');
+            let errorMsg = error.response?.data?.message || 'Error al iniciar sesión';
+            if (errorMsg === 'Bad credentials') {
+                errorMsg = 'Credenciales incorrectas';
+            }
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+        >
             <ToastContainer position="top-center" />
 
             {/* Theme Toggle Positioned */}
@@ -93,7 +104,7 @@ const Login: React.FC = () => {
                     <p>¿No tienes cuenta? <Link to="/register" className="text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 font-medium hover:underline">Regístrate aquí</Link></p>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

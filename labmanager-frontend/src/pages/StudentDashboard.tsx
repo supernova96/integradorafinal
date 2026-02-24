@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import Joyride, { type Step } from 'react-joyride';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Search, LogOut, AlertTriangle, History, Star, X, Calendar, Menu } from 'lucide-react';
@@ -65,6 +67,44 @@ const StudentDashboard: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const [activeTab, setActiveTab] = useState<'search' | 'history'>('search');
+
+    // Joyride Tour State
+    const [runTour, setRunTour] = useState(false);
+    const steps: Step[] = [
+        {
+            target: '.tour-search-tab',
+            content: 'Aquí puedes buscar y reservar equipos disponibles en el laboratorio.',
+            disableBeacon: true,
+        },
+        {
+            target: '.tour-filters',
+            content: 'Filtra los equipos por el software que necesitas o por fecha y horario.',
+        },
+        {
+            target: '.tour-results',
+            content: 'Los equipos disponibles aparecerán aquí. ¡Haz clic en "Reservar" para apartar uno!',
+        },
+        {
+            target: '.tour-history-tab',
+            content: 'En esta sección puedes ver tus reservas activas, pasadas y devolver equipos.',
+        }
+    ];
+
+    useEffect(() => {
+        const hasSeenTour = localStorage.getItem('hasSeenTour');
+        if (!hasSeenTour) {
+            setRunTour(true);
+        }
+    }, []);
+
+    const handleJoyrideCallback = (data: any) => {
+        const { status } = data;
+        const finishedStatuses = ['finished', 'skipped'];
+        if (finishedStatuses.includes(status)) {
+            setRunTour(false);
+            localStorage.setItem('hasSeenTour', 'true');
+        }
+    };
 
     const fetchMyReservations = () => {
         api.get('/reservations/my')
@@ -265,7 +305,29 @@ END:VCALENDAR`;
     };
 
     return (
-        <div className="min-h-screen">
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen"
+        >
+            <Joyride
+                steps={steps}
+                run={runTour}
+                continuous
+                showSkipButton
+                showProgress
+                callback={handleJoyrideCallback}
+                locale={{ back: 'Atrás', close: 'Cerrar', last: 'Finalizar', next: 'Siguiente', skip: 'Saltar' }}
+                styles={{
+                    options: {
+                        primaryColor: '#3b82f6',
+                        textColor: '#1e293b',
+                        zIndex: 1000,
+                    }
+                }}
+            />
             <ToastContainer theme="dark" />
             {/* Navbar with User Info */}
             <nav className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-xl border-b border-slate-200 dark:border-white/10 sticky top-0 z-50">
@@ -304,13 +366,13 @@ END:VCALENDAR`;
                 {/* Sidebar */}
                 <aside className="w-64 bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-xl border-r border-slate-200 dark:border-white/10 hidden lg:block">
                     <div className="p-4 space-y-2">
-                        <button onClick={() => setActiveTab('search')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'search'
+                        <button onClick={() => setActiveTab('search')} className={`tour-search-tab w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'search'
                             ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
                             }`}>
                             <Search className="h-5 w-5 mr-3" /> Buscar Equipo
                         </button>
-                        <button onClick={() => setActiveTab('history')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
+                        <button onClick={() => setActiveTab('history')} className={`tour-history-tab w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
                             ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
                             }`}>
@@ -330,13 +392,13 @@ END:VCALENDAR`;
                 {/* Mobile Sidebar */}
                 <aside className={`fixed top-[64px] bottom-0 left-0 w-64 bg-slate-900/95 backdrop-blur-xl border-r border-slate-200 dark:border-white/10 z-50 transition-transform duration-300 lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     <div className="p-4 space-y-2 h-full overflow-y-auto">
-                        <button onClick={() => { setActiveTab('search'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'search'
+                        <button onClick={() => { setActiveTab('search'); setIsSidebarOpen(false); }} className={`tour-search-tab w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'search'
                             ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
                             }`}>
                             <Search className="h-5 w-5 mr-3" /> Buscar Equipo
                         </button>
-                        <button onClick={() => { setActiveTab('history'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
+                        <button onClick={() => { setActiveTab('history'); setIsSidebarOpen(false); }} className={`tour-history-tab w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'history'
                             ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
                             }`}>
@@ -352,7 +414,7 @@ END:VCALENDAR`;
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Search Filters */}
                                 <div className="lg:col-span-1">
-                                    <div className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-6 sticky top-8">
+                                    <div className="tour-filters bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-6 sticky top-8">
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center">
                                             <Search className="w-5 h-5 mr-2 text-blue-400" />
                                             Filtros de Búsqueda
@@ -417,7 +479,7 @@ END:VCALENDAR`;
                                 </div>
 
                                 {/* Results Grid */}
-                                <div className="lg:col-span-2 space-y-6">
+                                <div className="tour-results lg:col-span-2 space-y-6">
                                     <div className="flex justify-between items-center bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md px-6 py-4 rounded-xl border border-slate-200 dark:border-white/10">
                                         <h2 className="text-lg font-bold text-slate-900 dark:text-white">Resultados Disponibles</h2>
                                         <span className="px-3 py-1 bg-white/10 rounded-lg text-sm font-mono text-slate-600 dark:text-slate-300">{availableLaptops.length} equipos</span>
@@ -726,7 +788,7 @@ END:VCALENDAR`;
 
 
             </div>
-        </div>
+        </motion.div>
     );
 };
 

@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -17,21 +18,24 @@ const PrivateRoute = () => {
 };
 
 function AppRoutes() {
+  const location = useLocation();
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      <Route element={<PrivateRoute />}>
-        <Route path="/student" element={<StudentDashboard />} />
-        <Route path="/professor" element={<ProfessorDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-      </Route>
+        <Route element={<PrivateRoute />}>
+          <Route path="/student" element={<StudentDashboard />} />
+          <Route path="/professor" element={<ProfessorDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/login" />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </AnimatePresence>
   );
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { LogOut, Layers, Clock, CheckCircle, Star, X, Calendar, Menu } from 'lucide-react';
@@ -237,7 +238,13 @@ END:VCALENDAR`;
     };
 
     return (
-        <div className="min-h-screen">
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen"
+        >
             <ToastContainer theme="dark" />
             <nav className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-xl border-b border-slate-200 dark:border-white/10 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -689,7 +696,7 @@ END:VCALENDAR`;
                     </div>
                 )
             }
-        </div >
+        </motion.div >
     );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { ClipboardCheck, LayoutGrid, AlertTriangle, LogOut, Plus, Edit, Trash2, Activity, QrCode, Download, Settings, Calendar, MessageSquare, Star, Menu, X, Bell } from 'lucide-react';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -197,6 +198,7 @@ const AdminDashboard: React.FC = () => {
             api.get('/incidents').then(res => setIncidents(res.data)).catch(() => console.error('Error fetching incidents for filter'));
             // Fetch reservations to determine 'IN_USE' status
             api.get('/reservations/all').then(res => setReservations(res.data)).catch(() => console.error('Error fetching reservations for inventory status'));
+            api.get('/software').then(res => setSoftwareList(res.data)).catch(() => console.error('Error loading software catalog'));
         } else if (activeTab === 'handover' || activeTab === 'requests' || activeTab === 'ratings') {
             api.get('/reservations/all').then(res => setReservations(res.data)).catch(() => toast.error('Error al cargar reservas'));
         } else if (activeTab === 'incidents') {
@@ -222,7 +224,15 @@ const AdminDashboard: React.FC = () => {
     const handleStatusUpdate = async (id: number, status: string) => {
         try {
             await api.put(`/reservations/${id}/status?status=${status}`);
-            toast.success(`Estado actualizado a ${status}`);
+            const statusMap: Record<string, string> = {
+                'APPROVED': 'Aprobada',
+                'REJECTED': 'Rechazada',
+                'IN_USE': 'En Uso',
+                'COMPLETED': 'Completada',
+                'LATE': 'Con Retraso',
+                'PENDING': 'Pendiente'
+            };
+            toast.success(`Estado actualizado a ${statusMap[status] || status}`);
             fetchData();
         } catch (e) {
             toast.error('Error al actualizar estado');
@@ -422,7 +432,13 @@ const AdminDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen">
+        <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="min-h-screen"
+        >
             <ToastContainer theme="dark" />
             <nav className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-xl border-b border-slate-200 dark:border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1668,7 +1684,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </motion.div>
     );
 };
 

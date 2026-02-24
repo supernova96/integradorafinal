@@ -34,11 +34,12 @@ public class AdminUserController {
     @PostMapping
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.existsByMatricula(signUpRequest.getMatricula())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Matricula is already taken!"));
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: ¡La matrícula ya está en uso!"));
         }
 
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
+            return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Error: ¡El correo electrónico ya está en uso!"));
         }
 
         java.util.Set<String> strRoles = signUpRequest.getRole();
@@ -72,7 +73,7 @@ public class AdminUserController {
     @PutMapping("/{id}/sanction")
     public ResponseEntity<?> toggleSanction(@PathVariable Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Error: User not found."));
+                .orElseThrow(() -> new RuntimeException("Error: Usuario no encontrado."));
 
         boolean newStatus = !user.isSanctioned();
         user.setSanctioned(newStatus);
