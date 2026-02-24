@@ -112,28 +112,6 @@ const AdminDashboard: React.FC = () => {
 
 
 
-    const downloadReport = async (type: 'inventory' | 'incidents', format: 'pdf' | 'excel') => {
-        try {
-            // filterStatus is not defined in the current scope.
-            // For now, removing the params part to ensure syntactical correctness.
-            // If filterStatus is needed, it should be defined or passed as an argument.
-            const response = await api.get(`/reports/${type}/${format}`, {
-                responseType: 'blob',
-                // params: type === 'inventory' ? { status: filterStatus } : {}
-            });
-
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${type}_report.${format === 'excel' ? 'xlsx' : 'pdf'}`);
-            document.body.appendChild(link);
-            link.click();
-            link.parentNode?.removeChild(link);
-        } catch (error) {
-            console.error("Error downloading report", error);
-            toast.error('Error al descargar el reporte.');
-        }
-    };
 
 
     // Mobile Sidebar State
@@ -142,6 +120,10 @@ const AdminDashboard: React.FC = () => {
     // Whitelist State
     const [whitelist, setWhitelist] = useState<any[]>([]);
     const [newWhitelistMatricula, setNewWhitelistMatricula] = useState('');
+
+    // Software Catalog State
+    const [softwareList, setSoftwareList] = useState<any[]>([]);
+    const [newSoftware, setNewSoftware] = useState({ name: '', version: '' });
 
     const fetchWhitelist = () => {
         api.get('/admin/whitelist')
@@ -193,6 +175,9 @@ const AdminDashboard: React.FC = () => {
             api.get('/admin/blocked-dates')
                 .then(res => setBlockedDates(res.data))
                 .catch(() => toast.error('Error al cargar fechas bloqueadas'));
+            api.get('/software')
+                .then(res => setSoftwareList(res.data))
+                .catch(() => toast.error('Error al cargar catálogo de software'));
         }
     };
 
@@ -248,8 +233,33 @@ const AdminDashboard: React.FC = () => {
             toast.success('Fecha bloqueada correctamente');
             setNewBlockedDate('');
             fetchData();
+        } catch (e) {
+            toast.error('Error al bloquear fecha');
+        }
+    };
+
+    const handleAddSoftware = async () => {
+        if (!newSoftware.name || !newSoftware.version) {
+            return toast.error('Nombre y versión son requeridos para el software');
+        }
+        try {
+            await api.post('/software', newSoftware);
+            toast.success('Software agregado al catálogo');
+            setNewSoftware({ name: '', version: '' });
+            fetchData();
         } catch (e: any) {
-            toast.error(e.response?.data || 'Error al bloquear fecha');
+            toast.error(e.response?.data?.message || 'Error al agregar software');
+        }
+    };
+
+    const handleDeleteSoftware = async (id: number) => {
+        if (!window.confirm('¿Seguro que deseas eliminar este software del catálogo?')) return;
+        try {
+            await api.delete(`/software/${id}`);
+            toast.success('Software eliminado del catálogo');
+            fetchData();
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || 'Error al eliminar software (puede estar en uso)');
         }
     };
 
@@ -285,24 +295,14 @@ const AdminDashboard: React.FC = () => {
     };
 
     // Laptop CRUD Handlers
-    const [softwareInput, setSoftwareInput] = useState('');
+    const [selectedSoftwareIds, setSelectedSoftwareIds] = useState<number[]>([]);
 
     const handleSaveLaptop = async () => {
         try {
-            // Parse software input (comma or newline separated)
-            const softwareList = softwareInput.split(/[\n,]/)
-                .map(s => s.trim())
-                .filter(s => s.length > 0)
-                .map(s => {
-                    // formats: "Name-Version" or just "Name"
-                    const parts = s.split('-');
-                    if (parts.length > 1) {
-                        return { name: parts[0].trim(), version: parts[1].trim() };
-                    }
-                    return { name: s, version: 'Latest' };
-                });
+            // Find selected software objects from the catalog list
+            const selectedSoftwareObjs = softwareList.filter((sw: any) => selectedSoftwareIds.includes(sw.id));
 
-            const payload = { ...laptopForm, installedSoftware: softwareList };
+            const payload = { ...laptopForm, installedSoftware: selectedSoftwareObjs };
 
             if (editingLaptop) {
                 await api.put(`/laptops/${editingLaptop.id}`, payload);
@@ -314,7 +314,7 @@ const AdminDashboard: React.FC = () => {
             setShowLaptopModal(false);
             setEditingLaptop(null);
             setLaptopForm({ model: '', serialNumber: '', status: 'AVAILABLE' });
-            setSoftwareInput('');
+            setSelectedSoftwareIds([]);
             fetchData();
         } catch (e) {
             toast.error('Error al guardar equipo');
@@ -335,16 +335,16 @@ const AdminDashboard: React.FC = () => {
     const openEditLaptop = (laptop: any) => {
         setEditingLaptop(laptop);
         setLaptopForm({ model: laptop.model, serialNumber: laptop.serialNumber, status: laptop.status });
-        // Pre-fill software input
-        const softwareStr = laptop.installedSoftware ? laptop.installedSoftware.map((s: any) => `${s.name}-${s.version}`).join(', ') : '';
-        setSoftwareInput(softwareStr);
+        // Pre-fill software input using IDs
+        const ids = laptop.installedSoftware ? laptop.installedSoftware.map((s: any) => s.id) : [];
+        setSelectedSoftwareIds(ids);
         setShowLaptopModal(true);
     };
 
     const openAddLaptop = () => {
         setEditingLaptop(null);
         setLaptopForm({ model: '', serialNumber: '', status: 'AVAILABLE' });
-        setSoftwareInput('');
+        setSelectedSoftwareIds([]);
         setShowLaptopModal(true);
     };
 
@@ -378,6 +378,15 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const downloadReport = (type: string, format: string) => {
+        let url = `/reports/${type}/${format}`;
+        if (type === 'inventory') {
+            url += `?status=${inventoryFilter}`;
+        }
+        const filename = `${type}_report.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+        handleDownloadReport(url, filename);
+    };
+
     return (
         <div className="min-h-screen">
             <ToastContainer theme="dark" />
@@ -395,7 +404,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <div className="flex items-center space-x-4">
                             <ThemeToggle />
-                            <span className="text-sm text-slate-600 dark:text-slate-300">Operador: <span className="font-semibold text-slate-900 dark:text-white">{user?.fullName}</span></span>
+                            <span className="text-sm text-slate-600 dark:text-slate-300 hidden sm:inline">Operador: <span className="font-semibold text-slate-900 dark:text-white">{user?.fullName}</span></span>
                             <button onClick={logout} className="p-2 rounded-full hover:bg-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-white transition-colors">
                                 <LogOut className="h-5 w-5" />
                             </button>
@@ -589,9 +598,9 @@ const AdminDashboard: React.FC = () => {
 
                     {activeTab === 'users' && (
                         <div>
-                            <div className="flex justify-between items-center mb-6">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Gestión de Usuarios</h1>
-                                <button onClick={() => setShowUserModal(true)} className="px-4 py-2 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/30">Registrar Usuario</button>
+                                <button onClick={() => setShowUserModal(true)} className="px-4 py-2 bg-blue-600 text-slate-900 dark:text-white rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/30 w-full sm:w-auto">Registrar Usuario</button>
                             </div>
                             <div className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-white/10 overflow-x-auto">
                                 <table className="min-w-full divide-y divide-white/10">
@@ -747,9 +756,9 @@ const AdminDashboard: React.FC = () => {
 
                     {activeTab === 'inventory' && (
                         <div>
-                            <div className="flex justify-between items-center mb-6">
+                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 space-y-4 lg:space-y-0">
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Inventario</h1>
-                                <div className='flex space-x-3'>
+                                <div className='flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full lg:w-auto'>
                                     <select value={inventoryFilter} onChange={e => setInventoryFilter(e.target.value)} className="rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
                                         <option value="ALL" className="bg-white dark:bg-slate-900">Todo el Inventario</option>
                                         <option value="HAS_INCIDENTS" className="bg-white dark:bg-slate-900">⚠️ Con Incidentes</option>
@@ -878,12 +887,31 @@ const AdminDashboard: React.FC = () => {
                                         <div className="space-y-3 mb-6">
                                             <input type="text" placeholder="Modelo (ej. Dell XPS 15)" value={laptopForm.model} onChange={e => setLaptopForm({ ...laptopForm, model: e.target.value })} className="block w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500" />
                                             <input type="text" placeholder="Número de Serie" value={laptopForm.serialNumber} onChange={e => setLaptopForm({ ...laptopForm, serialNumber: e.target.value })} className="block w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500" />
-                                            <textarea
-                                                placeholder="Software Instalado (Separado por comas. Ej: Java-17, Python, Docker)"
-                                                value={softwareInput}
-                                                onChange={e => setSoftwareInput(e.target.value)}
-                                                className="block w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500 h-24"
-                                            ></textarea>
+                                            <div className="block w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border border-slate-200 p-3 h-32 overflow-y-auto">
+                                                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Software Instalado</label>
+                                                <div className="space-y-2">
+                                                    {softwareList.map((sw: any) => (
+                                                        <label key={sw.id} className="flex items-center space-x-2 text-sm text-slate-700 dark:text-slate-300">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedSoftwareIds.includes(sw.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setSelectedSoftwareIds([...selectedSoftwareIds, sw.id]);
+                                                                    } else {
+                                                                        setSelectedSoftwareIds(selectedSoftwareIds.filter(id => id !== sw.id));
+                                                                    }
+                                                                }}
+                                                                className="rounded border-slate-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                                            />
+                                                            <span>{sw.name} <span className="text-xs text-slate-400">({sw.version})</span></span>
+                                                        </label>
+                                                    ))}
+                                                    {softwareList.length === 0 && (
+                                                        <span className="text-xs text-slate-500 italic">No hay software registrado en el catálogo.</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                             <select value={laptopForm.status} onChange={e => setLaptopForm({ ...laptopForm, status: e.target.value })} className="block w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-blue-500 focus:ring-blue-500">
                                                 <option value="AVAILABLE" className="bg-white dark:bg-slate-900">Disponible</option>
                                                 <option value="IN_USE" className="bg-white dark:bg-slate-900">En Uso</option>
@@ -966,6 +994,71 @@ const AdminDashboard: React.FC = () => {
                                             ))}
                                             {blockedDates.length === 0 && (
                                                 <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-500">No hay fechas bloqueadas.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Software Catalog Section */}
+                            <div className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-xl shadow-lg border border-slate-200 dark:border-white/10 p-6 mb-6">
+                                <div className="flex items-center mb-4">
+                                    <Settings className="h-6 w-6 text-purple-400 mr-3" />
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Catálogo de Software</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Administra el software disponible para asignar a los equipos.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6 sm:items-end">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Nombre</label>
+                                        <input
+                                            type="text"
+                                            value={newSoftware.name}
+                                            onChange={e => setNewSoftware({ ...newSoftware, name: e.target.value })}
+                                            placeholder="Ej. AutoCAD"
+                                            className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Versión</label>
+                                        <input
+                                            type="text"
+                                            value={newSoftware.version}
+                                            onChange={e => setNewSoftware({ ...newSoftware, version: e.target.value })}
+                                            placeholder="Ej. 2024"
+                                            className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                    <button onClick={handleAddSoftware} className="w-full sm:w-auto px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition-colors shadow-lg shadow-purple-500/20 sm:h-10 mb-[1px]">
+                                        Agregar Software
+                                    </button>
+                                </div>
+
+                                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
+                                    <table className="min-w-full divide-y divide-white/10">
+                                        <thead className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Nombre</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Versión</th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/10">
+                                            {softwareList.map((sw: any) => (
+                                                <tr key={sw.id} className="hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none transition-colors">
+                                                    <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-200">{sw.name}</td>
+                                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{sw.version}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button onClick={() => handleDeleteSoftware(sw.id)} className="text-red-400 hover:text-red-300 transition-colors">
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {softwareList.length === 0 && (
+                                                <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-500">No hay software registrado.</td></tr>
                                             )}
                                         </tbody>
                                     </table>

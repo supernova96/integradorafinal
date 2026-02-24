@@ -41,6 +41,9 @@ const ProfessorDashboard: React.FC = () => {
     const [evidence, setEvidence] = useState<File | null>(null);
     const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
+    // Software Catalog State
+    const [softwareList, setSoftwareList] = useState<any[]>([]);
+
     // Bulk Reservation State
     const [quantity, setQuantity] = useState(20);
     const [software, setSoftware] = useState('Any');
@@ -66,6 +69,11 @@ const ProfessorDashboard: React.FC = () => {
         // Fetch blocked dates
         api.get('/admin/blocked-dates')
             .then(res => setBlockedDates(res.data.map((bd: any) => bd.date)))
+            .catch(console.error);
+
+        // Fetch Software Catalog
+        api.get('/software')
+            .then(res => setSoftwareList(res.data))
             .catch(console.error);
 
         if (activeTab === 'history' || activeTab === 'report') {
@@ -243,7 +251,7 @@ END:VCALENDAR`;
                         </div>
                         <div className="flex items-center space-x-4">
                             <ThemeToggle />
-                            <span className="text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300">Bienvenido, Dr. <span className="font-semibold text-slate-800 dark:text-slate-900 dark:text-white">{user?.fullName}</span></span>
+                            <span className="text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300 hidden sm:inline">Bienvenido, Dr. <span className="font-semibold text-slate-800 dark:text-slate-900 dark:text-white">{user?.fullName}</span></span>
                             <button onClick={logout} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-red-400 transition-colors border border-transparent hover:border-white/5">
                                 <LogOut className="h-5 w-5" />
                             </button>
@@ -316,7 +324,7 @@ END:VCALENDAR`;
                                 <p className="text-slate-500 dark:text-slate-400 mb-8">Solicite múltiples equipos para sus alumnos. Requiere aprobación del Administrador.</p>
 
                                 <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Cantidad Necesaria</label>
                                             <input
@@ -336,12 +344,11 @@ END:VCALENDAR`;
                                                 className="w-full rounded-xl bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                             >
                                                 <option value="Any" className="bg-slate-900">Cualquiera</option>
-                                                <option value="Android Studio" className="bg-slate-900">Android Studio</option>
-                                                <option value="Visual Studio Code" className="bg-slate-900">Visual Studio Code</option>
-                                                <option value="Docker Desktop" className="bg-slate-900">Docker Desktop</option>
-                                                <option value="Python" className="bg-slate-900">Python</option>
-                                                <option value="Node.js" className="bg-slate-900">Node.js</option>
-                                                <option value="Xcode" className="bg-slate-900">Xcode</option>
+                                                {softwareList.map(sw => (
+                                                    <option key={sw.id} value={sw.name} className="bg-slate-900">
+                                                        {sw.name} ({sw.version})
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -357,7 +364,7 @@ END:VCALENDAR`;
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Fecha</label>
                                             <input
@@ -493,7 +500,7 @@ END:VCALENDAR`;
                                 <form onSubmit={handleReportSubmit} className="space-y-6">
                                     <div>
                                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Tipo de Reporte</label>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <button
                                                 type="button"
                                                 onClick={() => setReportType('DESKTOP')}
@@ -519,7 +526,7 @@ END:VCALENDAR`;
                                             <button
                                                 type="button"
                                                 onClick={() => setReportType('ROOM')}
-                                                className={`p-4 rounded-xl border transition-all col-span-2 ${reportType === 'ROOM'
+                                                className={`p-4 rounded-xl border transition-all col-span-1 sm:col-span-2 ${reportType === 'ROOM'
                                                     ? 'bg-blue-600/20 text-blue-300 border-blue-500/50 shadow-lg shadow-blue-500/10'
                                                     : 'bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-white/10'
                                                     }`}

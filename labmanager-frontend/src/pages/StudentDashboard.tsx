@@ -40,6 +40,9 @@ const StudentDashboard: React.FC = () => {
     const [selectedLaptop, setSelectedLaptop] = useState<any>(null);
     const [blockedDates, setBlockedDates] = useState<string[]>([]); // Array of 'YYYY-MM-DD' strings
 
+    // Software Catalog State
+    const [softwareList, setSoftwareList] = useState<any[]>([]);
+
     // Rating State
     const [showRatingModal, setShowRatingModal] = useState(false);
     const [ratingReservation, setRatingReservation] = useState<any>(null);
@@ -76,8 +79,15 @@ const StudentDashboard: React.FC = () => {
             .catch(() => console.error('Error fetching blocked dates'));
     };
 
+    const fetchSoftwareList = () => {
+        api.get('/software')
+            .then(res => setSoftwareList(res.data))
+            .catch(() => console.error('Error fetching software catalog'));
+    };
+
     useEffect(() => {
         fetchBlockedDates();
+        fetchSoftwareList();
         if (activeTab === 'history') {
             fetchMyReservations();
         }
@@ -350,25 +360,28 @@ END:VCALENDAR`;
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Software Requerido</label>
                                                 <div className="space-y-2 bg-slate-900/50 p-3 rounded-xl border border-white/5 h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                                                    {['Android Studio', 'Visual Studio Code', 'Docker Desktop', 'Python', 'Node.js', 'Xcode', 'IntelliJ IDEA', 'PostgreSQL', 'Unity Hub'].map((sw) => (
-                                                        <label key={sw} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none rounded-lg transition-colors group">
+                                                    {softwareList.map((sw: any) => (
+                                                        <label key={sw.id} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none rounded-lg transition-colors group">
                                                             <div className="relative flex items-center">
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={selectedSoftware.includes(sw)}
+                                                                    checked={selectedSoftware.includes(sw.name)}
                                                                     onChange={(e) => {
                                                                         if (e.target.checked) {
-                                                                            setSelectedSoftware([...selectedSoftware, sw]);
+                                                                            setSelectedSoftware([...selectedSoftware, sw.name]);
                                                                         } else {
-                                                                            setSelectedSoftware(selectedSoftware.filter(s => s !== sw));
+                                                                            setSelectedSoftware(selectedSoftware.filter(s => s !== sw.name));
                                                                         }
                                                                     }}
                                                                     className="peer h-4 w-4 rounded border-slate-500 bg-slate-800 text-blue-500 focus:ring-blue-500/50 focus:ring-offset-0"
                                                                 />
                                                             </div>
-                                                            <span className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:text-white transition-colors">{sw}</span>
+                                                            <span className="text-sm text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:text-white transition-colors">{sw.name} <span className="text-xs text-slate-400">({sw.version})</span></span>
                                                         </label>
                                                     ))}
+                                                    {softwareList.length === 0 && (
+                                                        <span className="text-xs text-slate-500 italic">No hay software registrado en el catálogo.</span>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div>
