@@ -12,6 +12,7 @@ import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { UNIVERSITY_SUBJECTS } from '../constants/subjects';
+import { Chatbot } from '../components/Chatbot';
 
 
 
@@ -786,6 +787,7 @@ END:VCALENDAR`;
                     )
                 }
 
+                <Chatbot userRole={user?.roles?.[0]} />
 
             </div>
         </motion.div>

@@ -11,6 +11,8 @@ import { es } from 'date-fns/locale';
 import api from '../services/api';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { Chatbot } from '../components/Chatbot';
+import { ReservationCalendar } from '../components/ReservationCalendar';
 
 const AdminDashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -61,9 +63,10 @@ const AdminDashboard: React.FC = () => {
         // Recargar reportes y notificaciones
         fetchData();
         fetchNotifications();
+        fetchNotifications();
     });
 
-    const [activeTab, setActiveTab] = useState<'inventory' | 'incidents' | 'handover' | 'requests' | 'users' | 'analytics' | 'reports' | 'whitelist' | 'logs' | 'config' | 'ratings'>('analytics');
+    const [activeTab, setActiveTab] = useState<'inventory' | 'incidents' | 'handover' | 'requests' | 'users' | 'analytics' | 'reports' | 'whitelist' | 'logs' | 'config' | 'ratings' | 'calendar'>('analytics');
     const [inventory, setInventory] = useState<any[]>([]);
     const [reservations, setReservations] = useState<any[]>([]);
     const [incidents, setIncidents] = useState<any[]>([]);
@@ -199,7 +202,7 @@ const AdminDashboard: React.FC = () => {
             // Fetch reservations to determine 'IN_USE' status
             api.get('/reservations/all').then(res => setReservations(res.data)).catch(() => console.error('Error fetching reservations for inventory status'));
             api.get('/software').then(res => setSoftwareList(res.data)).catch(() => console.error('Error loading software catalog'));
-        } else if (activeTab === 'handover' || activeTab === 'requests' || activeTab === 'ratings') {
+        } else if (activeTab === 'handover' || activeTab === 'requests' || activeTab === 'ratings' || activeTab === 'calendar') {
             api.get('/reservations/all').then(res => setReservations(res.data)).catch(() => toast.error('Error al cargar reservas'));
         } else if (activeTab === 'incidents') {
             api.get('/incidents').then(res => setIncidents(res.data)).catch(() => toast.error('Error al cargar incidentes'));
@@ -525,6 +528,9 @@ const AdminDashboard: React.FC = () => {
                         <button onClick={() => setActiveTab('analytics')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'analytics' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
                             <Activity className="h-5 w-5 mr-3" /> BI & Analítica
                         </button>
+                        <button onClick={() => setActiveTab('calendar')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'calendar' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
+                            <Calendar className="h-5 w-5 mr-3" /> Calendario Global
+                        </button>
                         <button onClick={() => setActiveTab('handover')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'handover' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
                             <ClipboardCheck className="h-5 w-5 mr-3" /> Entregas
                         </button>
@@ -572,6 +578,9 @@ const AdminDashboard: React.FC = () => {
                         <button onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'analytics' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
                             <Activity className="h-5 w-5 mr-3" /> BI & Analítica
                         </button>
+                        <button onClick={() => { setActiveTab('calendar'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'calendar' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
+                            <Calendar className="h-5 w-5 mr-3" /> Calendario Global
+                        </button>
                         <button onClick={() => { setActiveTab('handover'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-colors ${activeTab === 'handover' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white'}`}>
                             <ClipboardCheck className="h-5 w-5 mr-3" /> Entregas
                         </button>
@@ -604,6 +613,23 @@ const AdminDashboard: React.FC = () => {
 
                 <main className="flex-1 p-8 overflow-y-auto">
                     {activeTab === 'analytics' && <AnalyticsDashboard />}
+
+                    {activeTab === 'calendar' && (
+                        <div className="max-w-7xl mx-auto">
+                            <ReservationCalendar
+                                isAdminView={true}
+                                reservations={reservations.map(res => ({
+                                    id: res.id,
+                                    laptopModel: res.laptop ? `${res.laptop.model} (${res.laptop.serialNumber})` : 'Equipos Múltiples',
+                                    userName: res.user?.fullName || 'Usuario Desconocido',
+                                    startTime: res.startTime,
+                                    durationMinutes: res.durationMinutes || 120, // Example logic
+                                    status: res.status,
+                                    subject: res.subject,
+                                }))}
+                            />
+                        </div>
+                    )}
 
                     {activeTab === 'ratings' && (
                         <div>
@@ -1684,6 +1710,8 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <Chatbot userRole={user?.roles?.[0]} />
         </motion.div>
     );
 };

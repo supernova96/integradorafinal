@@ -9,7 +9,8 @@ import { es } from 'date-fns/locale';
 import { toast, ToastContainer } from 'react-toastify';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { UNIVERSITY_SUBJECTS } from '../constants/subjects';
-
+import { Chatbot } from '../components/Chatbot';
+import { ReservationCalendar } from '../components/ReservationCalendar';
 
 const ProfessorDashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -34,7 +35,7 @@ const ProfessorDashboard: React.FC = () => {
         // Actualizar el historial para reflejar el cambio de estado
         fetchReservations();
     });
-    const [activeTab, setActiveTab] = useState<'class' | 'history' | 'report'>('class');
+    const [activeTab, setActiveTab] = useState<'class' | 'history' | 'report' | 'calendar'>('class');
 
     // Report State
     const [reportType, setReportType] = useState('DESKTOP');
@@ -284,6 +285,12 @@ END:VCALENDAR`;
                             }`}>
                             <Clock className="h-5 w-5 mr-3" /> Historial de Solicitudes
                         </button>
+                        <button onClick={() => setActiveTab('calendar')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'calendar'
+                            ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
+                            }`}>
+                            <Calendar className="h-5 w-5 mr-3" /> Vista Calendario
+                        </button>
                         <button onClick={() => setActiveTab('report')} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'report'
                             ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
@@ -316,6 +323,12 @@ END:VCALENDAR`;
                             }`}>
                             <Clock className="h-5 w-5 mr-3" /> Historial de Solicitudes
                         </button>
+                        <button onClick={() => { setActiveTab('calendar'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'calendar'
+                            ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
+                            }`}>
+                            <Calendar className="h-5 w-5 mr-3" /> Vista Calendario
+                        </button>
                         <button onClick={() => { setActiveTab('report'); setIsSidebarOpen(false); }} className={`w-full flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${activeTab === 'report'
                             ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30'
                             : 'text-slate-500 dark:text-slate-400 hover:bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none hover:text-slate-900 dark:text-white border border-transparent'
@@ -326,6 +339,20 @@ END:VCALENDAR`;
                 </aside>
 
                 <main className="flex-1 p-8 overflow-y-auto">
+                    {activeTab === 'calendar' && (
+                        <div className="max-w-7xl mx-auto">
+                            <ReservationCalendar
+                                reservations={myReservations.map(res => ({
+                                    id: res.id,
+                                    laptopModel: res.laptop ? `${res.laptop.model} (${res.laptop.serialNumber})` : 'Equipos Múltiples',
+                                    userName: res.user?.fullName || 'Desconocido',
+                                    startTime: res.startTime,
+                                    status: res.status,
+                                    subject: res.subject,
+                                }))}
+                            />
+                        </div>
+                    )}
                     {activeTab === 'class' && (
                         <div className="max-w-3xl mx-auto">
                             <div className="bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 dark:border-white/10 p-8 animate-fadeIn">
@@ -696,6 +723,8 @@ END:VCALENDAR`;
                     </div>
                 )
             }
+
+            <Chatbot userRole={user?.roles?.[0]} />
         </motion.div >
     );
 };
