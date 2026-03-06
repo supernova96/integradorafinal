@@ -19,7 +19,7 @@ public interface LaptopRepository extends JpaRepository<Laptop, Long> {
                         "AND l.status = 'AVAILABLE' " +
                         "AND l.id NOT IN (" +
                         "    SELECT r.laptop.id FROM Reservation r " +
-                        "    WHERE r.status = 'ACTIVE' " +
+                        "    WHERE r.status IN ('PENDING', 'APPROVED', 'ACTIVE', 'OVERDUE') " +
                         "    AND (r.startTime < :end AND r.endTime > :start)" +
                         ") " +
                         "GROUP BY l " +
