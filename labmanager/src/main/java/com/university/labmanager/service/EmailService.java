@@ -3,6 +3,12 @@ package com.university.labmanager.service;
 import com.university.labmanager.model.Reservation;
 import com.university.labmanager.model.User;
 import com.university.labmanager.util.QrCodeGenerator;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.util.HashMap;
+import java.util.Map;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -28,11 +34,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final JavaMailSender emailSender;
     private final TemplateEngine templateEngine;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:noreply@labmanager.com}")
     private String fromEmail;
+
+    // Google Apps Script endpoint built by user
+    private static final String APP_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxqnzpEUfRU8ec1F2EGQP7naGen0E0_pGhIZqCVWQF123rNFk1ybnqTPGbanZR_0Kx-/exec";
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Async
     public void sendReservationConfirmation(Reservation reservation, User user) {
@@ -166,52 +175,48 @@ public class EmailService {
 
     @Async
     public void sendSimpleMessage(String to, String subject, String text) {
-        log.info("📧 [REAL SMTP] Attempting to send Simple Email to: {}", to);
-        System.out.println(">>> CHECKING SMTP: Sending to " + to + " via " + fromEmail);
-
+        log.info("📧 [APP SCRIPT] Attempting to send Simple Email to: {}", to);
         try {
             if (to == null || !to.contains("@")) {
                 log.warn("⚠️ Cannot send email, invalid address: {}", to);
                 return;
             }
 
-            MimeMessage message = emailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, StandardCharsets.UTF_8.name());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            String safeFrom = fromEmail != null ? fromEmail : "onboarding@resend.dev";
-            helper.setFrom(safeFrom);
-            helper.setTo(to);
-            helper.setSubject(subject != null ? subject : "No Subject");
-            helper.setText(text != null ? text : "");
+            Map<String, String> body = new HashMap<>();
+            body.put("to", to);
+            body.put("subject", subject != null ? subject : "No Subject");
+            body.put("htmlBody", text != null ? text.replace("\n", "<br>") : "");
 
-            emailSender.send(message);
-            log.info("✅ REAL Email sent successfully to {}", to);
-            System.out.println(">>> SMTP SUCCESS: Email sent to " + to);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            String response = restTemplate.postForObject(APP_SCRIPT_URL, request, String.class);
+
+            log.info("✅ APP SCRIPT Email sent successfully to {}. Response: {}", to, response);
         } catch (Exception e) {
-            log.error("❌ SMTP ERROR sending simple email to {}", to, e);
-            System.out.println(">>> SMTP FAILED: " + e.getMessage());
+            log.error("❌ APP SCRIPT ERROR sending simple email to {}", to, e);
             e.printStackTrace();
         }
     }
 
-    private void sendHtmlMessage(String to, String subject, String htmlBody) throws MessagingException {
-        log.info("📧 [REAL SMTP] Attempting to send HTML Email to: {}", to);
+    private void sendHtmlMessage(String to, String subject, String htmlBody) {
+        log.info("📧 [APP SCRIPT] Attempting to send HTML Email to: {}", to);
         try {
-            MimeMessage message = emailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
-                    StandardCharsets.UTF_8.name());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            String safeFrom = fromEmail != null ? fromEmail : "onboarding@resend.dev";
-            helper.setFrom(safeFrom);
-            helper.setTo(to != null ? to : "");
-            helper.setSubject(subject != null ? subject : "Notification");
-            helper.setText(htmlBody != null ? htmlBody : "", true);
+            Map<String, String> body = new HashMap<>();
+            body.put("to", to != null ? to : "");
+            body.put("subject", subject != null ? subject : "Notification");
+            body.put("htmlBody", htmlBody != null ? htmlBody : "");
 
-            emailSender.send(message);
-            log.info("✅ REAL HTML Email sent successfully to {}", to);
+            HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
+            String response = restTemplate.postForObject(APP_SCRIPT_URL, request, String.class);
+
+            log.info("✅ APP SCRIPT HTML Email sent successfully to {}. Response: {}", to, response);
         } catch (Exception e) {
-            log.error("❌ SMTP ERROR sending HTML email to {}", to, e);
-            System.out.println(">>> SMTP FAILED: " + e.getMessage());
+            log.error("❌ APP SCRIPT ERROR sending HTML email to {}", to, e);
             e.printStackTrace();
         }
     }
