@@ -83,7 +83,8 @@
 
             <div class="qr-code">
                 <p>Muestra este código QR al encargado para recoger tu equipo:</p>
-                <img th:src="'data:image/png;base64,' + ${qrImage}" alt="Código QR de Reserva" width="200"
+                <!-- Using external QR API to prevent base64 and AWT dependency issues -->
+                <img th:src="'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=RES-' + ${reservationId}" alt="Código QR de Reserva" width="200"
                     style="border: 2px solid #e5e7eb; padding: 10px; border-radius: 8px;">
             </div>
 

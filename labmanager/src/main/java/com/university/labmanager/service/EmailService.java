@@ -50,9 +50,8 @@ public class EmailService {
             } catch (Throwable t) {
                 log.error("❌ ERROR Generating QR Code: {}", t.getMessage(), t);
                 System.out.println("❌ QR GENERATION FAILED: " + t.toString());
-                // Fallback to empty/placeholder if QR fails, so email might still send?
-                // For now, let's keep it failing but LOGGED.
-                throw t;
+                // Fallback: Continue without throwing so the email still sends.
+                qrBase64 = "";
             }
 
             // 2. Prepare Context
