@@ -147,7 +147,7 @@ public class EmailService {
         try {
             log.info("📧 [REAL SMTP] Preparing Password Reset for: {}", to);
 
-            String resetUrl = "http://localhost:5173/reset-password?token=" + token;
+            String resetUrl = "https://labmanager-liart.vercel.app/reset-password?token=" + token;
 
             // Log link for safety/dev
             System.out.println(">>> PASSWORD RESET LINK: " + resetUrl);
