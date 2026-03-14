@@ -12,6 +12,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @org.springframework.boot.autoconfigure.domain.EntityScan(basePackages = "com.university.labmanager.model")
 public class LabManagerApplication {
 
+    @jakarta.annotation.PostConstruct
+    public void init() {
+        // Force the server to run in Mexico Time so LocalDateTime.now() is accurate for reservations
+        java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Mexico_City"));
+    }
+
 	// Triggering rebuild 3 - REBUILD ME PLEASE
 	public static void main(String[] args) {
 		SpringApplication.run(LabManagerApplication.class, args);
