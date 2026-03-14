@@ -1390,8 +1390,8 @@ const AdminDashboard: React.FC = () => {
 
                                                     const params = new URLSearchParams();
                                                     if (status) params.append('status', status);
-                                                    if (start) params.append('start', start);
-                                                    if (end) params.append('end', end);
+                                                    if (start) params.append('start', start + ':00');
+                                                    if (end) params.append('end', end + ':00');
 
                                                     // Search text logic
                                                     if (userRaw) {

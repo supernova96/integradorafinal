@@ -27,7 +27,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long>,
                         "(:start IS NULL OR r.startTime >= :start) AND " +
                         "(:end IS NULL OR r.endTime <= :end) AND " +
                         "(:userId IS NULL OR r.user.id = :userId) AND " +
-                        "(:professor IS NULL OR r.professor LIKE %:professor%)")
+                        "(:professor IS NULL OR r.professor LIKE CONCAT('%', :professor, '%'))")
         List<Reservation> findReservationsByFilters(
                         @org.springframework.data.repository.query.Param("status") ReservationStatus status,
                         @org.springframework.data.repository.query.Param("start") LocalDateTime start,
