@@ -7,31 +7,34 @@
 ---
 
 ## 1. Introducción
-Este documento detalla los aspectos técnicos del desarrollo e implementación del sistema *LabManager*. Describe las herramientas utilizadas, la estructura del código, la configuración del entorno y la lógica de los componentes principales. Su propósito es servir como guía para desarrolladores y administradores de sistemas.
+Este documento detalla los aspectos técnicos del desarrollo e implementación del sistema *LabManager*. Describe las herramientas utilizadas, la estructura del código, la configuración del entorno, la mensajería en tiempo real y la arquitectura de la base de datos en la nube. Su propósito es servir como guía para desarrolladores y administradores de sistemas.
 
 ## 2. Tecnologías Utilizadas (Stack Tecnológico)
 
 ### 2.1 Backend (Servidor)
-*   **Lenguaje:** Java 17 (JDK 17/21).
+*   **Lenguaje:** Java 17.
 *   **Framework:** Spring Boot 3.2.0.
 *   **Seguridad:** Spring Security + JWT (JSON Web Tokens).
-*   **Persistencia:** Spring Data JPA + Hibernate.
-*   **Base de Datos:** MySQL 8.0 (Producción) / H2 (Desarrollo).
-*   **Herramientas:** Maven (Gestión de dependencias), Lombok (Reducción de código boilerplate).
+*   **Tiempo Real:** Spring WebSocket + STOMP (Manejo de notificaciones en vivo a usuarios conectados).
+*   **Persistencia:** Spring Data JPA + Hibernate (Uso de JPA Specifications para consultas dinámicas complejas).
+*   **Base de Datos:** PostgreSQL en la nube (Hosteado en Supabase) para Producción.
+*   **Herramientas:** Maven (Gestión de dependencias), Lombok.
+*   **Reportes:** iText (PDF) y Apache POI (Excel).
 
 ### 2.2 Frontend (Cliente)
 *   **Lenguaje:** TypeScript + React 18.
 *   **Build Tool:** Vite.
-*   **Estilos:** TailwindCSS (Diseño Utility-First).
+*   **Estilos:** TailwindCSS (Diseño Utility-First) con soporte nativo de Modo Oscuro.
 *   **Librerías Clave:**
     *   `axios`: Consumo de API REST.
+    *   `sockjs-client` y `@stomp/stompjs`: Comunicación bidireccional por WebSockets.
     *   `react-router-dom`: Navegación SPA.
     *   `react-hook-form`: Gestión de formularios.
-    *   `lucide-react`: Iconografía.
-    *   `recharts`: Gráficos de analíticas.
-    *   `react-qr-code`: Generación de códigos QR para reservas.
-    *   `@yudiel/react-qr-scanner`: Escaneo de QR en Dashboard Administrativo.
-    *   `date-fns`: Manejo robusto de fechas y zonas horarias.
+    *   `lucide-react`: Iconografía SVG ligera.
+    *   `recharts`: Gráficos de analíticas dinámicos.
+    *   `react-qr-code`: Generación de códigos QR de estado para reservas.
+    *   `@yudiel/react-qr-scanner`: Escaneo en tiempo real usando APIs modernas del navegador (MediaDevices).
+    *   `date-fns`: Manejo robusto de fechas adaptado al formato ISO.
 
 ---
 
@@ -39,75 +42,60 @@ Este documento detalla los aspectos técnicos del desarrollo e implementación d
 
 El sistema sigue una **Arquitectura en Capas** clásica para asegurar la separación de responsabilidades:
 
-1.  **Capa de Presentación (Frontend):** Interfaz de usuario React que consume servicios REST.
-    *   *Gestión de Tema:* `ThemeContext` para manejo global de modo claro/oscuro con persistencia en localStorage.
-    *   *Manejo Offline:* `OfflineManager` para encolar peticiones cuando no hay red.
-2.  **Capa de Controladores (Backend Controller):** Recibe peticiones HTTP (`GET`, `POST`, etc.) y valida entradas.
-    *   *Ejemplo:* `ReservationController.java`.
-    *   *Manejo de Errores:* `GlobalExceptionHandler` unifica las respuestas de error (e.g., mapea `IllegalArgumentException` a 400 Bad Request).
-3.  **Capa de Servicio (Backend Service):** Contiene la lógica de negocio pura.
-    *   *Ejemplo:* `ReservationService.java` (Valida si una laptop está libre).
-4.  **Capa de Acceso a Datos (Repository):** Interactúa con la base de datos.
-    *   *Ejemplo:* `ReservationRepository.java` (Ejecuta consultas SQL/JPQL).
-5.  **Capa de Datos (Database):** Tablas Relacionales (MySQL).
+1.  **Capa de Presentación (Frontend):** Interfaz de usuario React que consume servicios REST y WebSocket.
+    *   *Sincronización en vivo:* Hook personalizado `useWebSocket` escucha notificaciones del Broker configurado sobre STOMP.
+    *   *Manejo Offline:* `OfflineManager` encola mutaciones (POST, PUT) en LocalStorage cuando no hay red (ServiceWorker interceptors).
+2.  **Capa de Controladores (Controller):** Recibe peticiones HTTP (`GET`, `POST`, etc.) y valida entradas.
+    *   *Manejo de Errores:* `GlobalExceptionHandler` unifica las respuestas de error a estándar JSON.
+3.  **Capa de Servicio (Service):** Contiene la lógica de negocio pura.
+    *   *Mensajería:* `NotificationService` acopla eventos de MongoDB/JPA (Cambios de status de un Laptop) y ejecuta `SimpMessagingTemplate` para enviar la capa de Websocket.
+4.  **Capa de Acceso a Datos (Repository):** Interactúa con la base de datos PostgreSQL.
+    *   *Resolución n+1:* Uso de `LEFT JOIN FETCH` y constructores dinámicos (`Specification`) en JPQL para reducir consultas y mejorar rendimiento de CPU al procesar Reportes.
+5.  **Capa de Datos (Database):** Tablas Relacionales en PostgreSQL (Supabase / DigitalOcean pooling).
 
 ---
 
 ## 4. Estructura del Proyecto
 
 ### 4.1 Backend (`/src/main/java/com/university/labmanager`)
-*   `config/`: Configuraciones globales (Seguridad, CORS, Swagger).
-*   `controller/`: Endpoints de la API REST.
-*   `model/`: Entidades JPA (Tablas de la BD).
-*   `repository/`: Interfaces de acceso a datos.
-*   `service/`: Lógica de negocio.
-*   `dto/`: Objetos de transferencia de datos (JSON Requests/Responses).
+*   `config/`: Configuraciones de Security, Beans de CORS y el `WebSocketConfig` (que define el registry en `/ws`).
+*   `controller/`: Endpoints de la API REST separando recursos como `/api/laptops` o `/api/reports`.
+*   `model/`: Entidades JPA representando el dominio.
+*   `repository/`: Interfaces CRUD que extienden JPA Repository y Specifications.
+*   `service/`: Donde ocurre validación inteligente (Ej: Asignar laptops óptimas basándose en RAM/Software instalado).
+*   `dto/`: Transferencia optimizada sin exponer entidades Hibernate directas.
 
 ### 4.2 Frontend (`/src`)
-*   `components/`: Piezas reutilizables de UI (Botones, Modales, Tablas).
-*   `pages/`: Pantallas principales (Login, Dashboards).
-*   `context/`: Gestión de estado global (AuthContext).
-*   `services/`: Lógica de comunicación con el Backend (api.ts).
+*   `components/`: Componentes encapsulados que consumen interfaces como `ThemeContext`.
+*   `pages/`: Pantallas principales de navegación y Dashboards en Grid layout.
+*   `hooks/`: Lógicas auto-contenidas (`useWebSocket.ts`, `useAuth.ts`).
+*   `services/`: Encapsulamiento del middleware Axios.
 
 ---
 
 ## 5. Implementación de Módulos Clave
 
-### 5.1 Módulo de Seguridad (Autenticación)
-Se implementó un filtro de seguridad (`AuthTokenFilter`) que intercepta cada petición HTTP.
-*   **Login:** El usuario envía credenciales -> Servidor valida -> Servidor responde con un **JWT**.
-*   **Uso:** El Frontend guarda el JWT y lo envía en el header `Authorization: Bearer <token>` en cada petición subsiguiente.
-*   **Roles:** Se usan anotaciones `@PreAuthorize("hasRole('ADMIN')")` para proteger endpoints sensibles.
+### 5.1 Comunicación en Tiempo Real (Notificaciones)
+LabManager ahora no depende de recargas manuales (Polling). El sistema notifica al administrador en caso de robos, averías o cuando un estudiante pide equipo; asimismo al estudiante se le notifica en el nanosegundo en que su reserva es aprobada para que genere el QR visual en su pantalla, usando un `MessageBroker`.
 
-### 5.2 Módulo de Reservas
-*   **Validación:** Antes de guardar, el sistema consulta `reservationRepository.findOverlapping(...)` para asegurar que el equipo no esté ocupado en ese horario.
-*   **Transaccionalidad:** Se usa `@Transactional` para evitar inconsistencias si falla un paso intermedio.
+### 5.2 Módulo Inteligente de Reservas
+*   El backend usa el motor de base de datos para buscar equipos libres (restringiendo fechas, días de la semana y horas laborables de 7am a 9pm).
+*   Los reportes de este módulo utilizan consultas paramétricas altamente dinámicas (`Specification<Reservation>`) que eluden fallos de tipado sobre `NULL` en Dialectos PostgreSQL agresivos.
 
-### 5.3 Módulo de Incidentes
-*   Permite la subida de imágenes. El backend guarda los archivos en una carpeta local (`uploads/`) y guarda solo la **ruta relativa** en la base de datos.
-*   Un "Manejador de Recursos Estáticos" expone esa carpeta para que el frontend pueda visualizar las fotos.
+### 5.3 Módulo de Incidentes (Archivos y Evidencias)
+Acepta fotografías de campo en formato multi-part. DigitalOcean Storage / Directorios estáticos en red alojan físicamente la evidencia que luego el administrador procesa.
 
 ---
 
 ## 6. Instalación y Despliegue
 
-### Requisitos Previos
-*   Java JDK 17+
-*   Node.js 18+
-*   Docker (Opcional, recomendado)
+El despliegue ha sido optimizado para la nube (Cloud-Native):
 
-### Pasos de Ejecución (Local)
-1.  **Base de Datos:** Levantar MySQL o usar configuración H2 en memoria.
-2.  **Backend:** Ejecutar `./mvnw spring-boot:run` en la carpeta raíz.
-3.  **Frontend:** Ejecutar `npm install` y luego `npm run dev` en la carpeta `frontend`.
-
-### Dockerización
-El proyecto incluye un `docker-compose.yml` que orquesta los servicios:
-*   `app-backend`: Puerto 8080.
-*   `app-frontend`: Puerto 80 (Nginx).
-*   `db`: MySQL 8.0.
+1. **Base de Datos:** Postgresql Pooling vía Supavisor.
+2. **Backend (App Platform / DigitalOcean):** Se provee al contenedor variables de entorno `JDBC_DATABASE_URL`, permitiendo que Hibernate actualice DDL/Esquemas con auto-update asegurado.
+3. **Frontend (Vercel / DO / Heroku):** Vite compila los estáticos con minimización extrema que posteriormente Nginx sirve velozmente al navegador del cliente HTTP.
 
 ---
 
 ## 7. Conclusión
-La implementación exitosa de LabManager demuestra el uso de patrones de diseño modernos y prácticas de desarrollo robustas, resultando en un sistema escalable, seguro y fácil de mantener.
+LabManager representa un puente sólido entre administración y telemetría de activos informáticos, impulsado por notificaciones interactivas, seguridad JWT e integraciones estables que escalan sobre infraestrucutras IaaS / PaaS.
