@@ -232,8 +232,12 @@ public class ReservationService {
 
             if (status == com.university.labmanager.model.enums.ReservationStatus.APPROVED) {
                 emailService.sendReservationConfirmation(safeReservation, safeUser);
+                notificationService.createNotification(safeUser.getId(), "Tu reserva del equipo " + safeLaptop.getModel() + " ha sido APROBADA.", "RESERVATION");
             } else if (status == com.university.labmanager.model.enums.ReservationStatus.COMPLETED) {
                 emailService.sendReturnConfirmation(safeReservation, safeUser);
+                notificationService.createNotification(safeUser.getId(), "Has devuelto el equipo " + safeLaptop.getModel() + " exitosamente. ¡Gracias!", "RESERVATION");
+            } else if (status == com.university.labmanager.model.enums.ReservationStatus.REJECTED) {
+                notificationService.createNotification(safeUser.getId(), "Tu reserva del equipo " + safeLaptop.getModel() + " ha sido RECHAZADA.", "RESERVATION");
             }
         } catch (Exception e) {
             // Log error but don't fail the transaction
