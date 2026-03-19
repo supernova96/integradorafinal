@@ -1342,13 +1342,15 @@ const AdminDashboard: React.FC = () => {
                                                     <option value="CANCELLED" className="bg-slate-900">Cancelada</option>
                                                 </select>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Fecha Inicio</label>
-                                                <input type="datetime-local" id="res-start" className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Fecha Fin</label>
-                                                <input type="datetime-local" id="res-end" className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [color-scheme:dark]" />
+                                            <div className="md:col-span-2 lg:col-span-2">
+                                                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Rango de Tiempo</label>
+                                                <select id="res-date-range" className="w-full rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <option value="all" className="bg-slate-900">Histórico completo</option>
+                                                    <option value="7days" className="bg-slate-900">Últimos 7 días</option>
+                                                    <option value="1month" className="bg-slate-900">Último mes</option>
+                                                    <option value="3months" className="bg-slate-900">Últimos 3 meses</option>
+                                                    <option value="6months" className="bg-slate-900">Últimos 6 meses</option>
+                                                </select>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Usuario (Opcional)</label>
@@ -1384,14 +1386,24 @@ const AdminDashboard: React.FC = () => {
                                             <button
                                                 onClick={() => {
                                                     const status = (document.getElementById('res-status') as HTMLSelectElement).value;
-                                                    const start = (document.getElementById('res-start') as HTMLInputElement).value;
-                                                    const end = (document.getElementById('res-end') as HTMLInputElement).value;
+                                                    const dateRange = (document.getElementById('res-date-range') as HTMLSelectElement).value;
                                                     const userRaw = (document.getElementById('res-user') as HTMLInputElement).value;
 
                                                     const params = new URLSearchParams();
                                                     if (status) params.append('status', status);
-                                                    if (start) params.append('start', start + ':00');
-                                                    if (end) params.append('end', end + ':00');
+                                                    
+                                                    if (dateRange !== 'all') {
+                                                        const end = new Date();
+                                                        let start = new Date();
+                                                        switch (dateRange) {
+                                                            case '7days': start.setDate(start.getDate() - 7); break;
+                                                            case '1month': start.setMonth(start.getMonth() - 1); break;
+                                                            case '3months': start.setMonth(start.getMonth() - 3); break;
+                                                            case '6months': start.setMonth(start.getMonth() - 6); break;
+                                                        }
+                                                        params.append('start', start.toISOString().split('.')[0]); // format: YYYY-MM-DDTHH:mm:ss
+                                                        params.append('end', end.toISOString().split('.')[0]);
+                                                    }
 
                                                     // Search text logic
                                                     if (userRaw) {
