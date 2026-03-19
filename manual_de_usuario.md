@@ -58,9 +58,9 @@ Para entregar un equipo a un estudiante de forma ágil que ya tiene su reserva:
 3. Acomoda el gafete/QR del estudiante sobre la cámara.
 4. LabManager lo detectará y te redirigirá. Confirma la acción para entregar la llave o computadora física. 
 
-### 3. Asistente Inteligente (Chatbot) 🤖
-¿Muchas reservas y ya te perdiste? Abajo a la derecha está el Chatbot administrativo.
-Puedes preguntarle desde "Resumen de incidentes hoy" hasta buscar comandos sueltos, ¡su base de datos responde cualquier duda administrativa!
+### 3. Asistente de Soporte (Chatbot) 🤖
+¿Dudas de cómo usar la plataforma? Abajo a la derecha está nuestro Chatbot de soporte (LabBot).
+Es una herramienta interactiva diseñada para guiarte por el sistema. Si le preguntas por chat dónde aprobar solicitudes, cómo funciona el escáner QR o cómo dar de alta un nuevo equipo, él detectará las palabras clave y te responderá automáticamente con las instrucciones correctas en pantalla.
 
 ### 4. Excel y PDF (Exportaciones) 📊
 En la barra lateral cuentas con las descargas de **Reportes**:
