@@ -1,0 +1,78 @@
+<h1>⚙️ Manual del Programador (Técnico) - LabManager V2.0</h1>
+<h2>1. Introducción</h2>
+<p>Este documento detalla rigurosamente la ingeniería detrás de la plataforma de nueva generación <strong>LabManager</strong>. Está elaborado para que otros desarrolladores, ingenieros de software, o auditores de TI puedan mantener, clonar, depurar o expandir la aplicación a nuevas fases sin pérdida de la lógica fundamental. Aborda arquitectura, estructura de código fuente, y la topología de la base de datos distribuida.</p>
+<hr>
+<h2>2. Visión Arquitectónica del Sistema</h2>
+<p>El sistema respeta una <strong>Arquitectura en Capas Invertida Controlada (Cliente-Servidor)</strong>:</p>
+<ol>
+<li><strong>Top-Level (Frontend):</strong> <em>Single Page Application (SPA)</em> construida sobre el DOM virtual (React). Totalmente desacoplada lógica e infraestructuralmente (en dominios cruzados).</li>
+<li><strong>Capa Middleware (Gateways y WS):</strong> Conexiones HTTP asíncronas vía capa <code>Axios</code> para transacciones y <code>SockJS/STOMP</code> persistentes bajo protocolo de túnel <em>ws://</em> para emisiones vivas (Broadcasts).</li>
+<li><strong>Capa Negocio (Backend Core):</strong> Una aplicación autónoma de Java Spring montada en base a beans (Dependency Injection) exponiendo Endpoints REST completos.</li>
+<li><strong>Capa Inversión de Datos (ORM):</strong> Hibernate embebido traduce lógica POJO Java (Entidades) directamente a lenguaje Data Definition (DDL) y manipula en lenguaje SQL abstracto de Dialectos agresivos en la nube PostgreSQL.</li>
+</ol>
+<hr>
+<h2>3. Stack Tecnológico de Referencia</h2>
+<h3>3.1 Nivel Backend (Java App)</h3>
+<ul>
+<li><strong>Base:</strong> Java JDK 17 (Criterio para Record Types y Patrones de Switch actuales).</li>
+<li><strong>Framework:</strong> Spring Boot Version 3.2.0.</li>
+<li><strong>Seguridad (Auth):</strong> Filtros Spring Security 6 encadenados y autorizaciones vía tokens <code>jjwt-api</code> sin estados de sesión web clásica de TomCat.</li>
+<li><strong>Tiempo Real:</strong> <code>spring-boot-starter-websocket</code> anclado a un <em>MessageBrokerRegistry</em> local mapeado al canal <code>/topic</code>.</li>
+<li><strong>Motor PDF/Excéntrico:</strong> <code>com.itextpdf.itext7-core</code> y dependencias transitorias de <code>org.apache.poi</code> para parseo sintáctico de árboles XML para Microsoft Excel (<code>.xlsx</code>).</li>
+</ul>
+<h3>3.2 Nivel Frontend (Vite App)</h3>
+<ul>
+<li><strong>Transpilador:</strong> Typescript estricto sobre Motor Node.js v18+.</li>
+<li><strong>Motor Build:</strong> ViteJS. Enormemente superior al obsoleto CRA de Webpack; asegura un <em>Hot Module Reload</em> atómico instantáneo.</li>
+<li><strong>Lógica UI:</strong> React 18, React Router DOM (v6+), <code>lucide-react</code> para carga nativa vectorizada (SVG) iconográfica.</li>
+<li><strong>Hardware Interoperacional:</strong> <code>@yudiel/react-qr-scanner</code>, encapsula llamadas al <code>navigator.mediaDevices</code> nativo del navegador abriendo cámaras multi-lentes.</li>
+</ul>
+<hr>
+<h2>4. Estructura de Directorios</h2>
+<h3>Módulo Backend (<code>/src/main/java/com/university/labmanager/</code>)</h3>
+<ul>
+<li><strong><code>config/</code>:</strong> Define el CORS absoluto (vía <code>WebSecurityConfig.java</code>) y el <code>WebSocketConfig.java</code> inyectando endpoints púbicos sin re-autenticar STOMP, confiando en cruces de Token Header (<code>/ws</code>).</li>
+<li><strong><code>controller/</code>:</strong> Controladores anotados típicamente con <code>@RestController</code> y mapas Base <code>/api/v1/X</code>.</li>
+<li><strong><code>model/</code>:</strong> POJOS con Anotaciones JPA típicas (<code>@Entity</code>, <code>@Table</code>) y directivas de persistencia <code>@JsonBackReference</code> y <code>@JsonManagedReference</code> vitales para evadir referencias o lazos infinitos <code>Jackson Serializable Error</code> al momento de compilar JSONS hacia React.</li>
+<li><strong><code>repository/</code>:</strong> Exclusivamente código <code>extends JpaRepository</code> y de muy alto valor avanzado <code>JpaSpecificationExecutor</code> (Solución radical contra fallos nativos de NullPointers PostgreSQL).</li>
+<li><strong><code>service/</code>:</strong> Envolturas de métodos transaccionales (<code>@Transactional</code>). Solo aquí descansa la lógica dura del negocio (Por norma de diseño, al Controller no se le incrustaron sentencias <code>if-else</code> nativas).</li>
+<li><strong><code>dto/</code>:</strong> Modelos anidables vacíos (Beans Planos). Ejemplo: <code>LaptopHistoryDTO</code> para mandar un solo string JSON en vez de 3 queries SQL.</li>
+</ul>
+<h3>Módulo Frontend (<code>/labmanager-frontend/src/</code>)</h3>
+<ul>
+<li><strong><code>components/</code>:</strong> Fragmentos lógicos de nivel atómico (<code>Button.tsx</code>, <code>Chatbot.tsx</code>, <code>NotificationDropdown.tsx</code>).</li>
+<li><strong><code>pages/</code>:</strong> Enrutados base: <code>AdminDashboard.tsx</code> es una macro-vista monstruo segmentada internamente en Sub-Tags reactivas de estado puro.</li>
+<li><strong><code>hooks/</code>:</strong> Controladores abstractos. Elemento valioso <code>useWebSocket.ts</code>, re-ejecutado y memorizado solo si cambia su URL base en modo producción vs modo local (Desactible mediante <em>API_URL</em> de <code>api.ts</code>).</li>
+</ul>
+<hr>
+<h2>5. Profundizando Componentes Sofisticados de Código</h2>
+<h3>A) Implementación de Reportes (JPA Specifications)</h3>
+<p>Originalmente, construcciones JPQL duras mediante <code>@Query(...)</code> desencadenaron problemas en PostgreSQL al buscar fechas híbridas en la nube originando <em>HTTP 500 Internals</em>. 
+La solución programada fue reescribir hacia el sub-lenguaje de <strong>Criteria Builder</strong>:
+Se diseñan clases predictivas <code>Specification&lt;Reservation&gt; spec = ...</code> con sentencias lógicas donde si el Filtro es <em>Nulo</em>, sencillamente no se añade dinámicamente al SQL final compilado (<code>Predicate</code> builder de EntityManager).</p>
+<h3>B) Mensajería WebSockets Reactiva</h3>
+<p>No utilizamos librerías pesadas como <em>Socket.io</em>. Optamos por STOMP puro de Spring. </p>
+<ul>
+<li>El servidor enlista su endpoint público en <code>/ws</code>.</li>
+<li>Se implementó el inyector <code>SimpMessagingTemplate</code> dentro de nuestro <code>NotificationService</code>. Cuando ocurre el método <code>createNotification</code>, se manda forzosamente el canal de túnel <code>&quot;/user/&quot; + destUserId + &quot;/queue/notifications&quot;</code>.</li>
+<li>En React, <code>@stomp/stompjs</code> suscriben un hilo oculto de subproceso DOM consumiendo el evento <code>onConnect</code>. Si el hook atrapa nueva carga útil, dispara inmediatamente un recálculo estatal (El componente campana de alerta eleva su contador sin alterar los nodos del padre).</li>
+</ul>
+<h3>C) Escaneo QR y Media Devices API</h3>
+<p>El escaneo de hardware de frontend usa variables de entorno reactivas temporales en el Dom para prevenir <em>Memory-Leaks</em> (Pérdidas de memoria RAM en Firefox/Chrome) al no apagar adecuadamente el led/sensor físico de cámara tras escanear un QR. Todo flujo se deshabilita desde la función <code>useEffect cleanup rutine</code>.</p>
+<hr>
+<h2>6. Base de Datos Cruda (DBA) y Despliegue CI/CD</h2>
+<p>El sistema requiere PostgreSQL ^14.0. Se hostea comúnmente en un Cloud Pooling (Supabase / DigitalOcean Databases) asumiendo los puertos fijos remotos <code>5432</code> o <code>6543</code>.</p>
+<ul>
+<li><p><strong>Propiedades y Variables Críticas del Sistema (<code>application.properties</code>):</strong></p>
+<ul>
+<li><code>spring.datasource.url</code> debe setear el connection pooling correcto: <code>jdbc:postgresql://&lt;HOST&gt;:&lt;PORT&gt;/postgres?user=...</code></li>
+<li><code>spring.jpa.hibernate.ddl-auto=update</code>: Auto-esquematiza las relaciones uno a n, creando llaves de enlace intermedias automáticamente sin programador DBA al momento que reinicie el servidor de Digital Ocean (Ajustable a <code>validate</code> en modo ultra-restrictivo).</li>
+</ul>
+</li>
+<li><p><strong>Variables Cliente Frontend (<code>.env</code>):</strong>
+El cliente obedece a un <code>axiosBaseUrl</code> y un conector WsUrl apuntados a un enrutador inverso que mapea subdirectorios de puerto.</p>
+</li>
+</ul>
+<p>El compilado final se unifica utilizando Maven <code>clean install -DskipTests</code> y NodeJS se aísla empacando en <code>/dist</code> donde todo el TSX de cientos de módulos React termina compactado brutalmente a solo ~3-4 archivos Javascript unificables ultra-ligeros con minificación nativa.</p>
+<p><strong>¿Necesitas Modificar el Código Base?</strong>
+Clona el repositorio desde GitHub, levanta el Docker <code>postgres</code> de forma local, configura tus URL en puertos <code>localhost:8080</code> (Para Spring) y arranca ViteJS. Las actualizaciones de TypeScript estarán activas al presionar <em>Guardar</em>.</p>

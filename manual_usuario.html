@@ -1,0 +1,129 @@
+<h1>📘 Manual de Usuario - LabManager V2.0</h1>
+<h2>1. Introducción</h2>
+<p>Bienvenido a <strong>LabManager</strong>, el Sistema Integral de Control y Gestión de Laboratorios de Cómputo. Esta plataforma de nueva generación está diseñada para simplificar y automatizar el ciclo de vida de los préstamos de hardware institucional. A través de este manual, aprenderás a utilizar el 100% de las herramientas que el sistema ofrece, dependiendo del nivel de acceso de tu usuario.</p>
+<h2>2. Requisitos de Operación</h2>
+<p>Al ser un sistema basado en la nube (Cloud-Native), <strong>no requieres instalar ninguna aplicación en tu computadora</strong>. </p>
+<ul>
+<li><strong>Navegador web compatible:</strong> Google Chrome, Mozilla Firefox, Microsoft Edge o Apple Safari (versiones actualizadas).</li>
+<li><strong>Conexión a Internet:</strong> Requerida para interactuar con la base de datos en tiempo real.</li>
+<li><strong>Cámara web / Dispositivo móvil (Opcional pero recomendado):</strong> Requerido únicamente para los Administradores al momento de escanear Códigos QR.</li>
+</ul>
+<hr>
+<h2>3. Roles de Usuario y Accesos</h2>
+<p>LabManager divide sus funciones en tres perfiles estrictamente controlados:</p>
+<ol>
+<li><strong>🧑‍🎓 ALUMNO:</strong> Nivel básico. Permite buscar software, reservar 1 equipo de forma individual, reportar fallas de computadoras asignadas y mostrar un código QR de canje.</li>
+<li><strong>👨‍🏫 PROFESOR:</strong> Nivel intermedio. Incluye las facultades del alumno junto con la capacidad de realizar <strong>Reservas Grupales</strong> (lotes de equipos para toda una clase) y un visualizador tipo Calendario.</li>
+<li><strong>👑 ADMINISTRADOR:</strong> Nivel maestro. Gestiona todo el inventario de Laptops, aprueba/rechaza reservas, escanea códigos QR, aplica sanciones a cuentas, y extrae la telemetría en formatos PDF y Excel.</li>
+</ol>
+<hr>
+<h2>4. Primeros Pasos: Registro e Inicio de Sesión</h2>
+<h3>4.1. Crear una Cuenta Nueva</h3>
+<ol>
+<li>Dirígete a la página principal del portal.</li>
+<li>Selecciona <strong>&quot;Crear Cuenta&quot;</strong> en el formulario central.</li>
+<li>Llenos los campos de <strong>Matrícula/Número de Empleado</strong>, <strong>Nombre Completo</strong>, <strong>Correo Electrónico</strong> y <strong>Contraseña</strong>.</li>
+<li>Selecciona tu <strong>Rol</strong> (Alumno o Profesor). <em>Nota: Los administradores solo pueden ser creados por otro administrador desde el panel interno.</em></li>
+<li>Haz clic en el botón de registro. Si recibes un error, asegúrate de que tu matrícula no exista previamente.</li>
+</ol>
+<h3>4.2. Iniciar Sesión</h3>
+<ol>
+<li>Ingresa tu Matrícula y Contraseña en la pantalla de <em>Login</em>.</li>
+<li>El sistema validará tu identidad y cifrará tu sesión. Si es correcta, serás redirigido a tu <em>Dashboard</em> (Panel de Control) correspondiente.</li>
+<li><strong>Pérdida de Contraseña:</strong> Existe un botón de &quot;Olvidé mi contraseña&quot; que enviará un enlace de recuperación seguro a tu correo electrónico institucional.</li>
+</ol>
+<hr>
+<h2>5. 🧑‍🎓 Funciones del Alumno (Student Dashboard)</h2>
+<p>El foco de esta vista es la agilidad para que pidas lo que necesitas sin fricciones.</p>
+<h3>5.1 Búsqueda y Reserva de Equipo</h3>
+<ol>
+<li>En la pestaña <strong>Buscar Equipos</strong>, navega por las tarjetas dinámicas del inventario.</li>
+<li>Arriba tienes una <strong>Barra Buscadora</strong>. Puedes escribir &quot;AutoCAD&quot;, &quot;RAM 16GB&quot; o &quot;Dell&quot; y el sistema filtrará instantáneamente los equipos disponibles.</li>
+<li>Ubica el equipo deseado y da clic en <strong>Reservar</strong>.</li>
+<li>Llena el breve formulario: Selecciona la <strong>Clase/Materia</strong> (directo del mapa curricular), la fecha y la duración.</li>
+<li>Haz clic en <strong>Confirmar</strong>. Tu reserva pasará a estado <code>Pendiente</code> (Naranja).</li>
+</ol>
+<h3>5.2. Alertas Reales y Generación de QR (Aprobación)</h3>
+<p>El sistema LabManager es en tiempo real. <strong>No necesitas presionar F5 ni recargar la página.</strong></p>
+<ul>
+<li>Cuando el encargado de sistemas apruebe tu solicitud desde su base de operaciones, en menos de un segundo tu pantalla se actualizará, sonará una campana y el estatus cambiará a <code>Aprobada</code> (Verde).</li>
+<li>En la pestaña lateral <strong>Historial de Préstamos</strong>, tu reserva activa mostrará ahora un botón especial llamado <strong>Ver QR</strong>.</li>
+<li><strong>El Canje:</strong> Haz clic ahí para abrir la imagen de tu código QR único. Muéstraselo al encargado a través de tu celular a la hora de pedir tu equipo físico. Al escanearlo, tu estatus se pondrá <code>En Uso</code>.</li>
+</ul>
+<h3>5.3. Reporte de Incidentes</h3>
+<p>¿Tu máquina no prende o no sirve el ratón de la sala fija?</p>
+<ol>
+<li>Dirígete a la pestaña de <strong>Reportar Falla</strong>.</li>
+<li>Escribe qué sucedió.</li>
+<li>Sube una foto <strong>(Evidencia)</strong> con tu cámara de la pantalla azul o tecla rota (Formato .JPG o .PNG).</li>
+<li>El administrador recibirá tu alerta inmediatamente.</li>
+</ol>
+<hr>
+<h2>6. 👨‍🏫 Funciones del Profesor (Professor Dashboard)</h2>
+<p>El profesor dispone de las mismas herramientas, potenciadas para manejar volumen.</p>
+<h3>6.1. Reservas Masivas (Grupales)</h3>
+<p>En la pestaña de reservar, verás una herramienta especial:</p>
+<ol>
+<li>No necesitas reservar 25 máquinas una por una.</li>
+<li>Simplemente escribe al sistema: <em>&quot;Ocupo 20 equipos para la clase Formación Sociocultural I&quot;</em>.</li>
+<li>El sistema agrupará esas 20 computadoras bajo tu nombre y horario en una sola acción maestra (Reservación &quot;Batch&quot;).</li>
+</ol>
+<h3>6.2. Vista Calendario Interactivo</h3>
+<ol>
+<li>Navega a <strong>Mi Calendario</strong>.</li>
+<li>Verás una interfaz mensual al estilo Google Calendar.</li>
+<li>Los bloques de colores (Azul, Verde, Rojo) te indican el estatus en el que están tus clases prácticas programadas en el futuro.</li>
+<li>Puedes hacer clic en cada bloque de horario para ver los detalles.</li>
+</ol>
+<hr>
+<h2>7. 👑 Funciones del Administrador (Admin Dashboard)</h2>
+<p>El nivel más alto de LabManager, es una estación de telemetría completa.</p>
+<h3>7.1. Centro de Notificaciones en Tiempo Real (Campana)</h3>
+<ul>
+<li>En la esquina superior derecha, verás un icono de campana.</li>
+<li>Estés en la pestaña que estés, si un alumno pide una máquina o se rompe algo, un mensaje volador (toast) aparecerá en tu esquina diciendo &quot;Nueva solicitud de matrícula 123&quot; y se sumará a los mensajes de la campana.</li>
+</ul>
+<h3>7.2. Aprobación Rápida &quot;A un clic&quot;</h3>
+<ol>
+<li>Pestaña: <strong>Solicitudes Pendientes</strong>.</li>
+<li>Se te lista quién pide, cuándo y por qué.</li>
+<li>Tienes un botoncito de ❌ (Rechazar) y uno de ✅ (Aprobar).</li>
+<li>Al hacer clic, el efecto se va directo al usuario en tiempo real sin esperas.</li>
+</ol>
+<h3>7.3. Entregas Ultra Veloces con Escáner QR</h3>
+<p>¡No más buscar el nombre del alumno en libretas!</p>
+<ol>
+<li>Pestaña: <strong>Escanear Código QR</strong>.</li>
+<li>El navegador te pedirá permisos de cámara. (Funciona leyendo la WebCam de tu laptop, o la cámara trasera de un iPad/Celular si abres la web ahí).</li>
+<li>Pide al alumno enseñar su pantalla de celular. El cuadro lector verde atrapará el código instantáneamente.</li>
+<li>Un cuadro te confirmará que le estás entregando el equipo <code>DELL-004</code> al alumno <code>Gómez</code>.</li>
+</ol>
+<h3>7.4. Módulo de Inventario y &quot;Hoja de Vida&quot;</h3>
+<ol>
+<li>Aquí controlas cuántas Laptops de verdad existen físicamente.</li>
+<li>Puedes <strong>[+ Agregar]</strong> inventario, poner número de placa técnica, y hardware interno.</li>
+<li>Tienes un botón exclusivo llamado <strong>Historial</strong>.</li>
+<li>Al activarlo, verás <strong>&quot;La Hoja de Vida&quot;</strong> de la computadora. Es decir, saber exactamente todos los alumnos que la tocaron desde su compra, y la cronología exacta de las fallas de disco o teclado que ha tenido en todo su tiempo de vida útil.</li>
+</ol>
+<h3>7.5. Pestaña de Reportes Automáticos (Exportación de Datos Avanzada)</h3>
+<p>Aquí ocurre la magia gerencial para presentar al rector de la Universidad:</p>
+<ol>
+<li>En <strong>Reportes &amp; BI</strong>, verás gráficos en barras modernas y pasteles dibujados solitos.</li>
+<li>Tienes dos botones milagrosos en lo alto de la pantalla: <strong>&quot;Descargar PDF&quot;</strong> y <strong>&quot;Descargar Excel&quot;</strong>.</li>
+<li>Ambos exportan lo acontecido esta semana o el histórico sin que sepas fórmulas complejas. En la hoja de Excel tendrás celdas listas de <code>Kpis de uso</code>, <code>Reporte Cronológico</code> y <code>Software Top usado</code>, en varias hojas inferiores del libro Excel.</li>
+</ol>
+<h3>7.6. Control de Usuarios (Sanciones)</h3>
+<ol>
+<li>Pestaña: <strong>Usuarios y Whitelist</strong>.</li>
+<li>Si un estudiante devuelve mal un equipo sistemáticamente, el sistema puede ponerlo como &quot;Suspendido&quot;. A él no se le permitirá hacer peticiones futuras hasta que levantes la sanción con tu poder de Administrador.</li>
+</ol>
+<hr>
+<h2>8. Funciones Globales para Todos</h2>
+<h3>8.1 LabBot: El Chatbot Integrado</h3>
+<p>Abajo a la derecha, en todo el sistema, siempre flota una carita <code>🤖</code>. Es el LabBot de Soporte.</p>
+<ul>
+<li><strong>Instrucciones Estáticas:</strong> Te indica en formato chat donde hacer clic dependiendo de lo que busques. </li>
+<li>¡Prueba a escribirle la palabra <code>&quot;roja&quot;</code> si no sabes qué hacer! Él distinguirá tu rol.</li>
+</ul>
+<h3>8.2 Interfaz: Modo Oscuro / Dark Mode Nativo</h3>
+<p>Para proteger tus ojos en jornadas nocturnas o pasillos sin luz, en la parte alta verás un botón con forma de <code>Luna 🌙</code>. Al activarlo, todo el software entrará en <em>Modo Noche</em> ultra-ergonómico con colores grisáceos certificados para la lectura digital. ¡Pruébalo!</p>
