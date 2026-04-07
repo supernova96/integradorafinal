@@ -22,14 +22,14 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'icono.svg',
+            src: 'icono2.ico',
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/x-icon'
           },
           {
-            src: 'icono.svg',
+            src: 'icono2.ico',
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/x-icon'
           }
         ]
       }
